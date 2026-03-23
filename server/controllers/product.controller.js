@@ -161,8 +161,18 @@ export const getProductByCategory = async (request, response) => {
             id = [id];
         }
 
+        // Validate ObjectIds to prevent CastError
+        const validIds = id.filter(item => mongoose.Types.ObjectId.isValid(item));
+        if (validIds.length === 0 && id.length > 0) {
+            return response.status(400).json({
+                message: "ID danh mục không hợp lệ",
+                error: true,
+                success: false
+            });
+        }
+
         const product = await ProductModel.find({
-            category: { $in: id }
+            category: { $in: validIds }
         })
             .populate('category')
             .populate('subCategory')
@@ -203,9 +213,24 @@ export const getProductByCategoryAndSubCategory = async (request, response) => {
             limit = 10
         }
 
+        // Validate ObjectIds to prevent CastError
+        const categoryIds = Array.isArray(categoryId) ? categoryId : [categoryId];
+        const subCategoryIds = Array.isArray(subCategoryId) ? subCategoryId : [subCategoryId];
+
+        const validCategoryIds = categoryIds.filter(id => id && mongoose.Types.ObjectId.isValid(id));
+        const validSubCategoryIds = subCategoryIds.filter(id => id && mongoose.Types.ObjectId.isValid(id));
+
+        if (validCategoryIds.length === 0 || validSubCategoryIds.length === 0) {
+            return response.status(400).json({
+                message: "ID danh mục hoặc loại sản phẩm không hợp lệ",
+                error: true,
+                success: false
+            });
+        }
+
         const query = {
-            category: { $in: Array.isArray(categoryId) ? categoryId : [categoryId] },
-            subCategory: { $in: Array.isArray(subCategoryId) ? subCategoryId : [subCategoryId] }
+            category: { $in: validCategoryIds },
+            subCategory: { $in: validSubCategoryIds }
         }
 
         // Add price range filter if provided

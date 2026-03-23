@@ -31,3 +31,5 @@ client/.vite_cache
 .client/.env
 .server/.env
 .server/tests
+chat-history.md
+AGENT_RULES.md

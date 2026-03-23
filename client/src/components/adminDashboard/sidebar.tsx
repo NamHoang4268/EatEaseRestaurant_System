@@ -143,11 +143,11 @@ const navigationSections: NavigationSection[] = [
         key: 'employee',
         title: 'Nhân viên',
         icon: '💼',
-        roles: ['MANAGER', 'WAITER', 'CHEF', 'CASHIER'],
+        roles: ['MANAGER', 'WAITER', 'CHEF', 'CASHIER', 'ADMIN'],
         items: [
             {
                 name: 'Dashboard',
-                href: '/dashboard/employee-dashboard',
+                href: '/dashboard',
                 icon: LayoutDashboard,
             },
             {
@@ -236,7 +236,7 @@ export function Sidebar() {
         } else if (path.includes('/voucher')) {
             newSections.reports = true;
         } else if (
-            path.includes('/employee-dashboard') ||
+            path === '/dashboard' ||
             path.includes('/my-shifts') ||
             path.includes('/my-performance')
         ) {

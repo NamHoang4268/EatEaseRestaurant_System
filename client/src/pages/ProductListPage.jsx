@@ -90,8 +90,17 @@ const ProductListPage = () => {
 
             try {
                 // Kiểm tra xem có subCategoryId hay không để gọi API phù hợp
+                // Đảm bảo subCategoryId là một ObjectId hợp lệ (24 ký tự hex)
+                const isValidId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
                 const hasSubCategory =
-                    subCategoryId && subCategoryId.trim() !== '';
+                    subCategoryId && subCategoryId.trim() !== '' && isValidId(subCategoryId);
+                const isCategoryValid = categoryId && isValidId(categoryId);
+
+                if (!isCategoryValid && categoryId !== 'all') {
+                    setLoading(false);
+                    setLoadingMore(false);
+                    return;
+                }
 
                 let response;
 

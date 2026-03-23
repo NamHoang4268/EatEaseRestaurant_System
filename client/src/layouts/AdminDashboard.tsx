@@ -3,12 +3,14 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { SettingsProvider } from '@/contexts/settings-context';
 import { Outlet } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 
 import { Sidebar } from '@/components/adminDashboard/sidebar';
 import { TopNav } from '@/components/adminDashboard/top-nav';
 import { SupportChatProvider } from '@/contexts/SupportChatContext';
 
 export default function AdminDashboard() {
+    const user = useSelector((state: any) => state?.user);
     // Update colors based on theme
     const [colors, setColors] = useState<string[]>([]);
 
@@ -38,7 +40,7 @@ export default function AdminDashboard() {
                     <Sidebar />
                     <div className="flex-1 overflow-auto w-full">
                         <TopNav />
-                        <div className="container mx-auto p-6">
+                        <div className={user?.role === 'CHEF' ? "w-full h-full" : "container mx-auto p-6"}>
                             <main className="w-full relative">
                                 <Outlet />
                             </main>

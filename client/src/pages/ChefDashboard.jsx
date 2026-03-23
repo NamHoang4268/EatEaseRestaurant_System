@@ -1,8 +1,11 @@
+import React from 'react';
+import { useSelector } from 'react-redux';
+import { LayoutDashboard } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import Axios from '../utils/Axios';
 import toast from 'react-hot-toast';
-import { FiClock, FiCheckCircle, FiRefreshCw, FiWifi, FiWifiOff } from 'react-icons/fi';
+import { FiClock, FiCheckCircle, FiRefreshCw, FiWifi, FiWifiOff, FiMaximize, FiMinimize } from 'react-icons/fi';
 import { GiCookingPot } from 'react-icons/gi';
 import { BsBellFill } from 'react-icons/bs';
 
@@ -31,19 +34,51 @@ function playBeep() {
     } catch (_) { /* ignore if no audio context */ }
 }
 
-export default function KitchenDisplayPage() {
+const ChefDashboard = () => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [connected, setConnected] = useState(false);
     const [clock, setClock] = useState(new Date());
     const [updatingId, setUpdatingId] = useState(null);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [tablesMap, setTablesMap] = useState({});
     const socketRef = useRef(null);
 
-    // Live clock
     useEffect(() => {
         const interval = setInterval(() => setClock(new Date()), 1000);
         return () => clearInterval(interval);
     }, []);
+
+    // Manage body scroll when expanded
+    useEffect(() => {
+        if (isExpanded) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isExpanded]);
+
+    const fetchTables = useCallback(async () => {
+        try {
+            const res = await Axios({ url: '/api/table/get-all', method: 'GET' });
+            if (res.data?.success) {
+                const map = {};
+                res.data.data.forEach(t => {
+                    map[t._id] = t.tableNumber;
+                });
+                setTablesMap(map);
+            }
+        } catch (err) {
+            console.warn('Failed to fetch tables for mapping:', err);
+        }
+    }, []);
+
+    const toggleExpanded = () => {
+        setIsExpanded(prev => !prev);
+    };
 
     const fetchItems = useCallback(async () => {
         try {
@@ -58,6 +93,7 @@ export default function KitchenDisplayPage() {
 
     useEffect(() => {
         fetchItems();
+        fetchTables();
 
         const s = io(SOCKET_URL);
         socketRef.current = s;
@@ -106,9 +142,19 @@ export default function KitchenDisplayPage() {
 
     // Group items by table
     const grouped = items.reduce((acc, item) => {
-        const key = item.tableId?.name || item.tableId?.tableName || item.tableId?._id || 'Không rõ';
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(item);
+        let tableName = 'Không rõ';
+        if (item.tableId) {
+            if (typeof item.tableId === 'object') {
+                tableName = item.tableId.tableNumber || item.tableId.name || item.tableId.tableName || tablesMap[item.tableId._id] || item.tableId._id;
+            } else {
+                tableName = tablesMap[item.tableId] || item.tableId;
+            }
+        } else {
+            console.warn('Thiếu tableId cho item:', item._id);
+        }
+        
+        if (!acc[tableName]) acc[tableName] = [];
+        acc[tableName].push(item);
         return acc;
     }, {});
 
@@ -116,10 +162,12 @@ export default function KitchenDisplayPage() {
     const totalCooking = items.filter(i => i.kitchenStatus === 'cooking').length;
 
     return (
-        <div className="min-h-screen bg-gray-950 text-white">
+        <div className={`min-h-screen bg-gray-950 text-white transition-all duration-300 ${
+            isExpanded ? 'fixed inset-0 z-[9999] overflow-y-auto w-full h-full' : 'relative'
+        }`}>
             {/* Header */}
-            <div className="bg-gray-900 border-b border-gray-800 px-6 py-4 sticky top-0 z-10">
-                <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-4">
+            <div className="bg-gray-900 border-b border-gray-800 px-4 py-3 sticky top-0 z-10 w-full">
+                <div className="w-full flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <GiCookingPot className="text-orange-400 text-3xl" />
                         <div>
@@ -154,18 +202,27 @@ export default function KitchenDisplayPage() {
                             {connected ? <FiWifi size={12} /> : <FiWifiOff size={12} />}
                             {connected ? 'Real-time' : 'Offline'}
                         </div>
-                        <button
-                            onClick={fetchItems}
-                            className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-xl transition text-sm"
-                        >
-                            <FiRefreshCw size={14} /> Làm mới
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={toggleExpanded}
+                                title={isExpanded ? "Thu nhỏ" : "Phóng to"}
+                                className="flex items-center justify-center bg-gray-800 hover:bg-gray-700 w-10 h-10 rounded-xl transition text-white"
+                            >
+                                {isExpanded ? <FiMinimize size={18} /> : <FiMaximize size={18} />}
+                            </button>
+                            <button
+                                onClick={fetchItems}
+                                className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-2 h-10 rounded-xl transition text-sm"
+                            >
+                                <FiRefreshCw size={14} /> Làm mới
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Content */}
-            <div className="max-w-screen-xl mx-auto p-6">
+            <div className="w-full p-0">
                 {loading ? (
                     <div className="flex items-center justify-center h-64 text-gray-400">
                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-400 mr-3" />
@@ -256,4 +313,7 @@ export default function KitchenDisplayPage() {
             </div>
         </div>
     );
-}
+    
+};
+
+export default ChefDashboard;

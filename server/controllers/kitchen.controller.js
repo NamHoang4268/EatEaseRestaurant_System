@@ -7,7 +7,7 @@ export const getKitchenOrders = async (req, res) => {
         const orders = await TableOrderModel.find({
             status: { $in: ["pending", "confirmed"] },
         })
-            .populate("tableId", "name tableName")
+            .populate("tableId", "name tableName tableNumber")
             .populate("items.productId", "name image")
             .sort({ createdAt: 1 });
 
@@ -25,7 +25,7 @@ export const getActiveKitchenItems = async (req, res) => {
         const orders = await TableOrderModel.find({
             "items.kitchenStatus": { $in: ["pending", "cooking"] },
         })
-            .populate("tableId", "name tableName")
+            .populate("tableId", "name tableName tableNumber")
             .populate("items.productId", "name image price")
             .sort({ createdAt: 1 });
 
@@ -69,7 +69,7 @@ export const updateItemKitchenStatus = async (req, res) => {
             });
         }
 
-        const order = await TableOrderModel.findById(orderId).populate("tableId", "name tableName");
+        const order = await TableOrderModel.findById(orderId).populate("tableId", "name tableName tableNumber");
         if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng." });
 
         const item = order.items.id(itemId);
@@ -89,7 +89,7 @@ export const updateItemKitchenStatus = async (req, res) => {
                     orderId,
                     itemId,
                     tableId: order.tableId?._id,
-                    tableName: order.tableId?.name || order.tableId?.tableName,
+                    tableName: order.tableId?.tableNumber || order.tableId?.name || order.tableId?.tableName,
                     productName: item.name,
                     quantity: item.quantity,
                 });
@@ -120,7 +120,7 @@ export const markItemServed = async (req, res) => {
     try {
         const { orderId, itemId } = req.params;
 
-        const order = await TableOrderModel.findById(orderId).populate("tableId", "name tableName");
+        const order = await TableOrderModel.findById(orderId).populate("tableId", "name tableName tableNumber");
         if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng." });
 
         const item = order.items.id(itemId);
@@ -143,7 +143,7 @@ export const markItemServed = async (req, res) => {
                 orderId,
                 itemId,
                 tableId: order.tableId?._id,
-                tableName: order.tableId?.name || order.tableId?.tableName,
+                tableName: order.tableId?.tableNumber || order.tableId?.name || order.tableId?.tableName,
             });
         }
 
@@ -163,7 +163,7 @@ export const getReadyToServeItems = async (req, res) => {
         const orders = await TableOrderModel.find({
             "items.kitchenStatus": "ready",
         })
-            .populate("tableId", "name tableName")
+            .populate("tableId", "name tableName tableNumber")
             .populate("items.productId", "name image")
             .sort({ "items.readyAt": 1 });
 
