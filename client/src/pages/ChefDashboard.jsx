@@ -44,6 +44,7 @@ const ChefDashboard = () => {
     const [tablesMap, setTablesMap] = useState({});
     const socketRef = useRef(null);
 
+    // Live clock
     useEffect(() => {
         const interval = setInterval(() => setClock(new Date()), 1000);
         return () => clearInterval(interval);

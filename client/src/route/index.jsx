@@ -36,7 +36,6 @@ import TablePaymentSuccessPage from '../pages/TablePaymentSuccessPage';
 import SupportChatAdmin from '@/pages/SupportChatAdmin';
 
 import CustomerCheckinPage from '../pages/CustomerCheckinPage';
-import WaiterBoardPage from '../pages/WaiterBoardPage';
 import DashboardRouter from '../pages/DashboardRouter';
 
 const router = createBrowserRouter([
@@ -86,7 +85,6 @@ const router = createBrowserRouter([
             },
 
             // === KITCHEN & WAITER ===
-            { path: 'waiter-board', element: <WaiterBoardPage /> },
 
             // === AUTH ===
             { path: 'login', element: <PublicRoute><Login /></PublicRoute> },

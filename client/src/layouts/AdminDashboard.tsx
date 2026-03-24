@@ -40,7 +40,7 @@ export default function AdminDashboard() {
                     <Sidebar />
                     <div className="flex-1 overflow-auto w-full">
                         <TopNav />
-                        <div className={user?.role === 'CHEF' ? "w-full h-full" : "container mx-auto p-6"}>
+                        <div className={['CHEF', 'WAITER'].includes(user?.role) ? "w-full h-full" : "container mx-auto p-6"}>
                             <main className="w-full relative">
                                 <Outlet />
                             </main>
