@@ -25,6 +25,7 @@ import kitchenRouter from './route/kitchen.route.js';
 import { registerSupportChatSocket } from "./socket/supportChat.socket.js";
 import { registerKitchenSocket } from "./socket/kitchen.socket.js";
 import serviceRequestRouter from './route/serviceRequest.route.js';
+import { handleStripeWebhook } from './controllers/tableOrder.controller.js';
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -52,7 +53,9 @@ app.use(
 
 // Middleware để lưu raw body cho webhook Stripe
 app.use((req, res, next) => {
-    if (req.originalUrl === '/api/stripe/webhook') {
+    const isWebhook = req.originalUrl === '/api/stripe/webhook' ||
+                      req.originalUrl === '/api/table-order/stripe-webhook';
+    if (isWebhook) {
         let data = '';
         req.setEncoding('utf8');
         req.on('data', chunk => {
@@ -105,6 +108,9 @@ app.use('/api/kitchen', kitchenRouter);
 import orderRouter from './route/order.route.js';
 app.use('/api/order', orderRouter);
 app.use('/api/service-request', serviceRequestRouter);
+
+// Legacy Stripe webhook path (for Stripe CLI and production compatibility)
+app.post('/api/stripe/webhook', handleStripeWebhook);
 
 
 connectDB().then(() => {

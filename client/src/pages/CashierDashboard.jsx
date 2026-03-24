@@ -209,6 +209,13 @@ const CashierDashboard = () => {
             });
             fetchOrders();
         });
+        s.on('cashier:order_paid_online', (data) => {
+            toast.success(
+                `✅ Bàn ${data.tableNumber} vừa thanh toán online thành công! (${(data.total || 0).toLocaleString('vi-VN')}đ)`,
+                { duration: 6000 }
+            );
+            fetchOrders();
+        });
         return () => s.disconnect();
     }, [fetchOrders]);
 

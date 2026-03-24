@@ -442,6 +442,12 @@ const SummaryApi = {
     cancel_table_order_item: {
         url: '/api/table-order/item/:orderId/:itemId',
         method: 'delete'
+    },
+
+    // US26 – Stripe online payment verify
+    verify_stripe_session: {
+        url: '/api/table-order/verify-stripe-session',
+        method: 'get'
     }
 }
 

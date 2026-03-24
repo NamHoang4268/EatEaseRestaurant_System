@@ -12,6 +12,8 @@ import {
     FiX,
     FiClock,
     FiBell,
+    FiFileText,
+    FiCheckCircle,
 } from 'react-icons/fi';
 
 // Map kitchenStatus → label + màu hiển thị cho khách
@@ -21,6 +23,80 @@ const KITCHEN_STATUS_CONFIG = {
     ready:    { label: 'Sắp phục vụ',   className: 'bg-purple-100 text-purple-700' },
     served:   { label: 'Đã phục vụ',   className: 'bg-green-100 text-green-700' },
 };
+
+// ─────────────────────────────────────────
+// Bill Preview Modal (AC 3–5)
+// ─────────────────────────────────────────
+function OnlineBillPreviewModal({ tableOrder, onClose, onConfirm, processing }) {
+    if (!tableOrder) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-4 flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <FiFileText /> Xác nhận Thanh toán Online
+                        </h2>
+                        <p className="text-blue-100 text-sm mt-0.5">Bàn {tableOrder.tableNumber}</p>
+                    </div>
+                    <button onClick={onClose} className="text-white text-2xl leading-none hover:text-blue-200">
+                        &times;
+                    </button>
+                </div>
+
+                {/* Items list */}
+                <div className="p-5 space-y-2 max-h-64 overflow-y-auto">
+                    {(tableOrder.items || []).map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center border-b pb-2 last:border-b-0">
+                            <div>
+                                <p className="font-semibold text-gray-800">{item.name}</p>
+                                <p className="text-sm text-gray-500">x{item.quantity} × {item.price.toLocaleString('vi-VN')}đ</p>
+                            </div>
+                            <p className="font-bold text-gray-800">
+                                {(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                            </p>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Total */}
+                <div className="px-5 pb-2">
+                    <div className="flex justify-between items-center bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+                        <span className="text-lg font-bold text-gray-800">Tổng cộng:</span>
+                        <span className="text-2xl font-bold text-blue-600">
+                            {(tableOrder.total || 0).toLocaleString('vi-VN')}đ
+                        </span>
+                    </div>
+                </div>
+
+                <div className="px-5 pb-2 pt-1">
+                    <p className="text-xs text-gray-500 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
+                        ⚠️ Sau khi xác nhận, bạn sẽ được chuyển đến trang thanh toán Stripe an toàn.
+                    </p>
+                </div>
+
+                {/* Actions */}
+                <div className="px-5 pb-5 mt-1 flex gap-3">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-semibold transition"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={processing}
+                        className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white py-3 rounded-xl font-bold transition"
+                    >
+                        <FiCheckCircle size={18} />
+                        {processing ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 const TableOrderManagementPage = () => {
     const navigate = useNavigate();
@@ -32,6 +108,7 @@ const TableOrderManagementPage = () => {
     const [waiterNote, setWaiterNote] = useState('');
     const [showWaiterInput, setShowWaiterInput] = useState(false);
     const [callCooldown, setCallCooldown] = useState(false);
+    const [showBillPreview, setShowBillPreview] = useState(false);
 
     useEffect(() => {
         if (!user || user.role !== 'TABLE') {
@@ -60,13 +137,12 @@ const TableOrderManagementPage = () => {
         }
     };
 
-    const handleCheckout = async (paymentMethod) => {
+    // Called after user reviews the bill and confirms
+    const handleOnlinePaymentConfirm = async () => {
         if (!tableOrder || tableOrder.items.length === 0) {
             toast.error('Không có món nào để thanh toán');
             return;
         }
-
-        // AC: Chỉ cho phép thanh toán khi tất cả món đã được phục vụ
         if (!allServed) {
             toast.error('Vui lòng chờ tất cả các món được phục vụ trước khi thanh toán.');
             return;
@@ -76,28 +152,49 @@ const TableOrderManagementPage = () => {
             setProcessing(true);
             const response = await Axios({
                 ...SummaryApi.checkout_table_order,
-                data: {
-                    paymentMethod: paymentMethod,
-                },
+                data: { paymentMethod: 'online' },
             });
 
             if (response.data.success) {
-                if (paymentMethod === 'at_counter') {
-                    toast.success(
-                        '📋 Yêu cầu thanh toán tại quầy đã được gửi. Nhân viên sẽ đến hỗ trợ!',
-                        { duration: 5000 }
-                    );
-                    navigate('/table-menu');
-                } else {
-                    // Redirect to Stripe
-                    window.location.href = response.data.data.checkoutUrl;
-                }
+                // AC 6 – redirect to Stripe
+                window.location.href = response.data.data.checkoutUrl;
             }
         } catch (error) {
             console.error('Error checkout:', error);
-            toast.error(
-                error.response?.data?.message || 'Không thể thanh toán'
-            );
+            toast.error(error.response?.data?.message || 'Không thể tạo phiên thanh toán');
+            setShowBillPreview(false);
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleCashCheckout = async () => {
+        if (!tableOrder || tableOrder.items.length === 0) {
+            toast.error('Không có món nào để thanh toán');
+            return;
+        }
+        if (!allServed) {
+            toast.error('Vui lòng chờ tất cả các món được phục vụ trước khi thanh toán.');
+            return;
+        }
+
+        try {
+            setProcessing(true);
+            const response = await Axios({
+                ...SummaryApi.checkout_table_order,
+                data: { paymentMethod: 'at_counter' },
+            });
+
+            if (response.data.success) {
+                toast.success(
+                    '📋 Yêu cầu thanh toán tại quầy đã được gửi. Nhân viên sẽ đến hỗ trợ!',
+                    { duration: 5000 }
+                );
+                navigate('/table-menu');
+            }
+        } catch (error) {
+            console.error('Error checkout:', error);
+            toast.error(error.response?.data?.message || 'Không thể thanh toán');
         } finally {
             setProcessing(false);
         }
@@ -216,6 +313,16 @@ const TableOrderManagementPage = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            {/* Bill Preview Modal */}
+            {showBillPreview && (
+                <OnlineBillPreviewModal
+                    tableOrder={tableOrder}
+                    onClose={() => setShowBillPreview(false)}
+                    onConfirm={handleOnlinePaymentConfirm}
+                    processing={processing}
+                />
+            )}
+
             {/* Header */}
             <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 sticky top-0 z-40 shadow-lg">
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -352,17 +459,24 @@ const TableOrderManagementPage = () => {
                 )}
 
                 <div className="space-y-3">
+                    {/* Online payment – shows bill preview first (AC 3–5) */}
                     <button
-                        onClick={() => handleCheckout('online')}
+                        onClick={() => {
+                            if (!allServed) {
+                                toast.error('Vui lòng chờ tất cả các món được phục vụ.');
+                                return;
+                            }
+                            setShowBillPreview(true);
+                        }}
                         disabled={processing || !allServed}
                         className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg"
                     >
                         <FiCreditCard size={24} />
-                        {processing ? 'Đang xử lý...' : 'Thanh toán online'}
+                        {processing ? 'Đang xử lý...' : 'Thanh toán online (Stripe)'}
                     </button>
 
                     <button
-                        onClick={() => handleCheckout('at_counter')}
+                        onClick={handleCashCheckout}
                         disabled={processing || !allServed}
                         className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg"
                     >

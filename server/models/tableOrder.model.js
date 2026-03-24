@@ -128,6 +128,19 @@ const tableOrderSchema = new mongoose.Schema({
         type: String,
         enum: ['cash', 'online', null],
         default: null
+    },
+    // Stripe online payment
+    stripeSessionId: {
+        type: String,
+        default: null
+    },
+    expectedTotal: {
+        type: Number,
+        default: null
+    },
+    billChangedAfterPayment: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

@@ -90,16 +90,10 @@ const navigationSections: NavigationSection[] = [
                 roles: ['ADMIN', 'WAITER'],
             },
             {
-                name: 'Hóa đơn',
+                name: 'Báo cáo & Thống kê',
                 href: '/dashboard/bill',
-                icon: FileText,
-                roles: ['ADMIN', 'WAITER', 'CASHIER'],
-            },
-            {
-                name: 'Báo cáo',
-                href: '/dashboard/report',
                 icon: BarChart2,
-                roles: ['ADMIN'],
+                roles: ['ADMIN', 'WAITER', 'CASHIER'],
             },
         ],
     },

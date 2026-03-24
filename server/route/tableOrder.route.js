@@ -8,7 +8,9 @@ import {
     getAllActiveTableOrders,
     getCashierPendingOrders,
     confirmCashierPayment,
-    cancelTableOrderItem
+    cancelTableOrderItem,
+    handleStripeWebhook,
+    verifyStripeSession
 } from '../controllers/tableOrder.controller.js';
 
 const tableOrderRouter = Router();
@@ -25,5 +27,11 @@ tableOrderRouter.post('/cashier-confirm', auth, confirmCashierPayment);
 
 // Waiter cancel item
 tableOrderRouter.delete('/item/:orderId/:itemId', auth, cancelTableOrderItem);
+
+// US26 – Stripe webhook (no auth – Stripe calls this directly; raw body handled in index.js)
+tableOrderRouter.post('/stripe-webhook', handleStripeWebhook);
+
+// US26 – Verify stripe session (for success page)
+tableOrderRouter.get('/verify-stripe-session', auth, verifyStripeSession);
 
 export default tableOrderRouter;

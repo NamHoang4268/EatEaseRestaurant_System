@@ -242,15 +242,13 @@ export async function checkoutTableOrder(request, response) {
             });
 
         } else {
-            // Online payment - create Stripe session
+            // Online payment – create Stripe Checkout Session
             const line_items = tableOrder.items.map(item => ({
                 price_data: {
                     currency: 'vnd',
                     product_data: {
                         name: item.name,
-                        metadata: {
-                            productId: item.productId.toString()
-                        }
+                        metadata: { productId: item.productId.toString() }
                     },
                     unit_amount: Math.round(item.price),
                 },
@@ -274,6 +272,14 @@ export async function checkoutTableOrder(request, response) {
             };
 
             const stripeSession = await Stripe.checkout.sessions.create(params);
+
+            // Snapshot: save sessionId + expectedTotal for webhook verification
+            tableOrder.stripeSessionId = stripeSession.id;
+            tableOrder.expectedTotal = tableOrder.total;
+            tableOrder.status = 'pending_payment';
+            tableOrder.paymentRequest = 'online';
+            tableOrder.checkedOutAt = new Date();
+            await tableOrder.save();
 
             return response.status(200).json({
                 message: 'Tạo phiên thanh toán thành công',
@@ -444,7 +450,7 @@ export async function confirmCashierPayment(request, response) {
                     productId: item.productId,
                     product_details: { name: item.name, image: [] },
                     quantity: item.quantity,
-                    payment_status: 'Da thanh toan',
+                    payment_status: 'Đã thanh toán',
                     delivery_address: null,
                     customerContact: null,
                     subTotalAmt: item.price * item.quantity,
@@ -533,6 +539,186 @@ export async function cancelTableOrderItem(request, response) {
 
     } catch (error) {
         console.error('cancelTableOrderItem error:', error);
+        return response.status(500).json({
+            message: error.message || 'Lỗi server',
+            error: true, success: false
+        });
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// US26 – Stripe Webhook (server-side payment confirmation)
+// ─────────────────────────────────────────────────────────────────
+export async function handleStripeWebhook(request, response) {
+    const sig = request.headers['stripe-signature'];
+    // Use CLI webhook secret when testing locally, else use dashboard secret
+    const webhookSecret = process.env.STRIPE_CLI_WEBHOOK_SECRET || process.env.STRIPE_ENPOINT_WEBHOOK_SECRET_KEY;
+
+    let event;
+    try {
+        event = Stripe.webhooks.constructEvent(request.rawBody, sig, webhookSecret);
+    } catch (err) {
+        console.error('[Stripe Webhook] Signature verification failed:', err.message);
+        return response.status(400).json({ error: `Webhook Error: ${err.message}` });
+    }
+
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        const { orderType, tableOrderId } = session.metadata || {};
+
+        // Only handle dine-in orders
+        if (orderType !== 'dine_in' || !tableOrderId) {
+            return response.status(200).json({ received: true });
+        }
+
+        try {
+            const tableOrder = await TableOrderModel.findById(tableOrderId);
+
+            if (!tableOrder) {
+                console.error('[Stripe Webhook] TableOrder not found:', tableOrderId);
+                return response.status(200).json({ received: true }); // Ack to Stripe
+            }
+
+            // Idempotency: already paid
+            if (tableOrder.status === 'paid') {
+                return response.status(200).json({ received: true });
+            }
+
+            // AC 9.1 – Bill integrity check
+            if (tableOrder.expectedTotal !== null &&
+                Math.round(tableOrder.total) !== Math.round(tableOrder.expectedTotal)) {
+                console.warn(
+                    `[Stripe Webhook] Bill changed for order ${tableOrderId}: ` +
+                    `expected ${tableOrder.expectedTotal}, current ${tableOrder.total}`
+                );
+                tableOrder.billChangedAfterPayment = true;
+                await tableOrder.save();
+                return response.status(200).json({ received: true });
+            }
+
+            // MongoDB transaction: create OrderModel records + mark paid
+            const dbSession = await mongoose.startSession();
+            try {
+                await dbSession.withTransaction(async () => {
+                    const orderItems = tableOrder.items.map(item => ({
+                        userId: tableOrder.tableId,
+                        orderId: `ORD-${new mongoose.Types.ObjectId()}`,
+                        productId: item.productId,
+                        product_details: { name: item.name, image: [] },
+                        quantity: item.quantity,
+                        payment_status: 'Đã thanh toán',
+                        delivery_address: null,
+                        customerContact: null,
+                        subTotalAmt: item.price * item.quantity,
+                        totalAmt: item.price * item.quantity,
+                        status: 'delivered',
+                        tableNumber: tableOrder.tableNumber,
+                        orderType: 'dine_in'
+                    }));
+                    await OrderModel.insertMany(orderItems, { session: dbSession });
+
+                    tableOrder.status = 'paid';
+                    tableOrder.paymentMethod = 'online';
+                    tableOrder.paidAt = new Date();
+                    await tableOrder.save({ session: dbSession });
+                });
+
+                console.log(`[Stripe Webhook] ✅ Order ${tableOrderId} marked paid (table ${tableOrder.tableNumber})`);
+
+                // AC 11 – Notify Cashier Dashboard via Socket.io
+                const io = request.app.get('io');
+                if (io) {
+                    io.emit('cashier:order_paid_online', {
+                        tableOrderId: tableOrder._id.toString(),
+                        tableNumber: tableOrder.tableNumber,
+                        total: tableOrder.total,
+                        paidAt: tableOrder.paidAt
+                    });
+                }
+            } finally {
+                await dbSession.endSession();
+            }
+        } catch (error) {
+            console.error('[Stripe Webhook] Error processing payment:', error);
+            return response.status(500).json({ error: 'Internal server error' });
+        }
+    }
+
+    return response.status(200).json({ received: true });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// US26 – Verify Stripe Session (for success page)
+// ─────────────────────────────────────────────────────────────────
+export async function verifyStripeSession(request, response) {
+    try {
+        const { session_id } = request.query;
+
+        if (!session_id) {
+            return response.status(400).json({
+                message: 'session_id là bắt buộc',
+                error: true, success: false
+            });
+        }
+
+        // Look up by stripeSessionId
+        const tableOrder = await TableOrderModel.findOne({ stripeSessionId: session_id });
+
+        if (!tableOrder) {
+            // Fallback: try fetching from Stripe API
+            try {
+                const stripeSession = await Stripe.checkout.sessions.retrieve(session_id);
+                const { payment_status } = stripeSession;
+                return response.status(200).json({
+                    message: payment_status === 'paid' ? 'Đang xử lý...' : 'Chưa thanh toán',
+                    error: false,
+                    success: true,
+                    data: { status: payment_status === 'paid' ? 'processing' : 'pending' }
+                });
+            } catch {
+                return response.status(404).json({
+                    message: 'Không tìm thấy phiên thanh toán',
+                    error: true, success: false
+                });
+            }
+        }
+
+        // AC 9.1 – bill changed
+        if (tableOrder.billChangedAfterPayment) {
+            return response.status(200).json({
+                message: 'Đơn hàng đã thay đổi. Vui lòng thanh toán lại.',
+                error: false,
+                success: true,
+                data: { status: 'bill_changed', tableNumber: tableOrder.tableNumber }
+            });
+        }
+
+        // AC 12 – success
+        if (tableOrder.status === 'paid') {
+            return response.status(200).json({
+                message: 'Thanh toán thành công. Cảm ơn quý khách!',
+                error: false,
+                success: true,
+                data: {
+                    status: 'paid',
+                    tableNumber: tableOrder.tableNumber,
+                    total: tableOrder.total,
+                    paidAt: tableOrder.paidAt,
+                    items: tableOrder.items
+                }
+            });
+        }
+
+        // Still pending (webhook not yet received)
+        return response.status(200).json({
+            message: 'Đang chờ xác nhận thanh toán...',
+            error: false,
+            success: true,
+            data: { status: 'pending', tableNumber: tableOrder.tableNumber }
+        });
+
+    } catch (error) {
+        console.error('[verifyStripeSession] Error:', error);
         return response.status(500).json({
             message: error.message || 'Lỗi server',
             error: true, success: false
