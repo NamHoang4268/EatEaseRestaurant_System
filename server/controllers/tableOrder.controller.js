@@ -4,6 +4,9 @@ import OrderModel from '../models/order.model.js';
 import UserModel from '../models/user.model.js';
 import mongoose from 'mongoose';
 import Stripe from '../config/stripe.js';
+import PaymentModel from '../models/payment.model.js';
+import KitchenQueueModel from '../models/kitchenQueue.model.js';
+import NotificationModel from '../models/notification.model.js';
 
 // Add items to table order
 export async function addItemsToTableOrder(request, response) {
@@ -98,12 +101,18 @@ export async function addItemsToTableOrder(request, response) {
             });
         }
 
+        // Track the indices of newly-added items before pushing
+        let savedItemsForQueue = [];
+
         if (tableOrder) {
             // Update existing order
+            const prePushLength = tableOrder.items.length;
             tableOrder.items.push(...itemsToAdd);
             tableOrder.subTotal += subTotal;
             tableOrder.total = tableOrder.subTotal;
             await tableOrder.save();
+            // Reliably capture only the newly pushed items
+            savedItemsForQueue = tableOrder.items.slice(prePushLength);
         } else {
             // Create new order
             tableOrder = await TableOrderModel.create({
@@ -114,6 +123,36 @@ export async function addItemsToTableOrder(request, response) {
                 total: subTotal,
                 status: 'active'
             });
+            savedItemsForQueue = tableOrder.items;
+        }
+
+        // Thêm các món mới vào KitchenQueue
+        try {
+            const queueItems = savedItemsForQueue.map((item) => ({
+                tableOrderId: tableOrder._id,
+                orderItemId: item._id,
+                productId: item.productId,
+                productName: item.name,
+                tableId: tableId,
+                tableNumber: actualTableNumber,
+                quantity: item.quantity,
+                note: item.note || '',
+                status: 'pending',
+                sentAt: new Date(),
+            }));
+            await KitchenQueueModel.insertMany(queueItems);
+
+            // Thông báo lên bếp qua socket
+            const io = request.app?.get('io');
+            if (io) {
+                io.to('kitchen').emit('kitchen:new_order', {
+                    tableOrderId: tableOrder._id,
+                    tableNumber: actualTableNumber,
+                    items: queueItems.map((q) => ({ productName: q.productName, quantity: q.quantity, note: q.note })),
+                });
+            }
+        } catch (queueErr) {
+            console.error('Error creating KitchenQueue entries:', queueErr);
         }
 
         return response.status(200).json({
@@ -467,6 +506,22 @@ export async function confirmCashierPayment(request, response) {
                 await tableOrder.save({ session });
             });
 
+            // Ghi nhận giao dịch thanh toán tiền mặt vào Payment collection
+            try {
+                await PaymentModel.create({
+                    tableOrderId: tableOrder._id,
+                    amount: tableOrder.total,
+                    method: 'cash',
+                    status: 'completed',
+                    processedBy: request.userId,
+                    processedAt: tableOrder.paidAt,
+                    discountAmount: tableOrder.discount || 0,
+                    voucherId: tableOrder.voucherId || null,
+                });
+            } catch (paymentErr) {
+                console.error('Error creating Payment record (cash):', paymentErr);
+            }
+
             return response.status(200).json({
                 message: 'Thanh toan thanh cong. Don hang da duoc hoan tat.',
                 error: false,
@@ -624,6 +679,23 @@ export async function handleStripeWebhook(request, response) {
                 });
 
                 console.log(`[Stripe Webhook] ✅ Order ${tableOrderId} marked paid (table ${tableOrder.tableNumber})`);
+
+                // Ghi nhận giao dịch thanh toán online vào Payment collection
+                try {
+                    await PaymentModel.create({
+                        tableOrderId: tableOrder._id,
+                        amount: tableOrder.total,
+                        method: 'stripe',
+                        status: 'completed',
+                        stripeSessionId: session.id,
+                        stripePaymentIntentId: session.payment_intent || null,
+                        processedAt: tableOrder.paidAt,
+                        discountAmount: tableOrder.discount || 0,
+                        voucherId: tableOrder.voucherId || null,
+                    });
+                } catch (paymentErr) {
+                    console.error('[Stripe Webhook] Error creating Payment record:', paymentErr);
+                }
 
                 // AC 11 – Notify Cashier Dashboard via Socket.io
                 const io = request.app.get('io');
