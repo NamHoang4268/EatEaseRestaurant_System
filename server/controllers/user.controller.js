@@ -708,6 +708,11 @@ export async function googleLoginController(req, res) {
                 }
                 user.googleId = googleId;
                 if (!user.avatar) user.avatar = picture || "";
+                // Migrate role cũ (GUEST, USER...) không còn hợp lệ → CUSTOMER
+                const validRoles = ["ADMIN", "WAITER", "CHEF", "CASHIER", "CUSTOMER", "TABLE"];
+                if (!validRoles.includes(user.role)) {
+                    user.role = "CUSTOMER";
+                }
                 await user.save();
             } else {
                 // User mới — tự động đăng ký
