@@ -1,6 +1,5 @@
 import TableOrderModel from '../models/tableOrder.model.js';
 import ProductModel from '../models/product.model.js';
-import OrderModel from '../models/order.model.js';
 import UserModel from '../models/user.model.js';
 import mongoose from 'mongoose';
 import Stripe from '../config/stripe.js';
@@ -66,8 +65,8 @@ export async function addItemsToTableOrder(request, response) {
                 });
             }
 
-            // AC 7.2 – Product must be available (status OR stock = 0 both mean hết hàng)
-            const isProductAvailable = product.status === 'available' && product.stock !== 0;
+            // Validate stock still uses status field
+            const isProductAvailable = product.status === 'available';
             if (!isProductAvailable) {
                 return response.status(400).json({
                     message: `"${product.name}" hiện không khả dụng.`,
@@ -76,14 +75,8 @@ export async function addItemsToTableOrder(request, response) {
                 });
             }
 
-            // AC 7.3 – Qty must not exceed available stock (only when stock is tracked)
-            if (product.stock > 0 && qty > product.stock) {
-                return response.status(400).json({
-                    message: `Số lượng vượt quá số lượng hiện có (còn ${product.stock}).`,
-                    error: true,
-                    success: false
-                });
-            }
+            // AC 7.3 – qty check (no stock field, just validate positive)
+            // stock field đã xóa — chỉ validate qty > 0
 
             const itemTotal = product.price * qty;
             subTotal += itemTotal;
@@ -444,24 +437,9 @@ export async function confirmCashierPayment(request, response) {
         const session = await mongoose.startSession();
         try {
             await session.withTransaction(async () => {
-                const orderItems = tableOrder.items.map(item => ({
-                    userId: request.userId,
-                    orderId: `ORD-${new mongoose.Types.ObjectId()}`,
-                    productId: item.productId,
-                    product_details: { name: item.name, image: [] },
-                    quantity: item.quantity,
-                    payment_status: 'Đã thanh toán',
-                    delivery_address: null,
-                    customerContact: null,
-                    subTotalAmt: item.price * item.quantity,
-                    totalAmt: item.price * item.quantity,
-                    status: 'delivered',
-                    tableNumber: tableOrder.tableNumber,
-                    orderType: 'dine_in'
-                }));
-                await OrderModel.insertMany(orderItems, { session });
-
+                // tableOrder IS the order record — không cần tạo bản sao sang OrderModel nữa
                 tableOrder.status = 'paid';
+                tableOrder.paymentStatus = 'paid';
                 tableOrder.paymentMethod = 'cash';
                 tableOrder.paidAt = new Date();
                 await tableOrder.save({ session });
@@ -600,24 +578,9 @@ export async function handleStripeWebhook(request, response) {
             const dbSession = await mongoose.startSession();
             try {
                 await dbSession.withTransaction(async () => {
-                    const orderItems = tableOrder.items.map(item => ({
-                        userId: tableOrder.tableId,
-                        orderId: `ORD-${new mongoose.Types.ObjectId()}`,
-                        productId: item.productId,
-                        product_details: { name: item.name, image: [] },
-                        quantity: item.quantity,
-                        payment_status: 'Đã thanh toán',
-                        delivery_address: null,
-                        customerContact: null,
-                        subTotalAmt: item.price * item.quantity,
-                        totalAmt: item.price * item.quantity,
-                        status: 'delivered',
-                        tableNumber: tableOrder.tableNumber,
-                        orderType: 'dine_in'
-                    }));
-                    await OrderModel.insertMany(orderItems, { session: dbSession });
-
+                    // tableOrder IS the canonical order — không tạo bản sao OrderModel
                     tableOrder.status = 'paid';
+                    tableOrder.paymentStatus = 'paid';
                     tableOrder.paymentMethod = 'online';
                     tableOrder.paidAt = new Date();
                     await tableOrder.save({ session: dbSession });

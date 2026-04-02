@@ -1,4 +1,8 @@
-import OrderModel from '../models/order.model.js';
+/**
+ * order.controller.js — đã được migrate sang TableOrderModel
+ * Route /api/order/all-orders giữ lại để tương thích với các UI cũ.
+ */
+import TableOrderModel from '../models/tableOrder.model.js';
 import UserModel from '../models/user.model.js';
 
 export async function getAllOrders(request, response) {
@@ -18,15 +22,14 @@ export async function getAllOrders(request, response) {
 
         let query = {};
 
+        // tableOrder dùng paymentStatus thay vì payment_status
         if (status) {
-            query.payment_status = status;
+            query.paymentStatus = status;
         }
 
         if (startDate || endDate) {
             query.createdAt = {};
-            if (startDate) {
-                query.createdAt.$gte = new Date(startDate);
-            }
+            if (startDate) query.createdAt.$gte = new Date(startDate);
             if (endDate) {
                 const end = new Date(endDate);
                 end.setHours(23, 59, 59, 999);
@@ -34,8 +37,9 @@ export async function getAllOrders(request, response) {
             }
         }
 
-        const orders = await OrderModel.find(query)
-            .populate('userId', 'name email mobile')
+        const orders = await TableOrderModel.find(query)
+            .populate({ path: 'customerId', select: 'name phone' })
+            .populate({ path: 'voucherId', select: 'code name discountType discountValue' })
             .sort({ createdAt: -1 });
 
         return response.status(200).json({
@@ -71,7 +75,7 @@ export async function updateOrderStatus(request, response) {
             });
         }
 
-        const order = await OrderModel.findById(orderId);
+        const order = await TableOrderModel.findById(orderId);
 
         if (!order) {
             return response.status(404).json({
@@ -81,16 +85,15 @@ export async function updateOrderStatus(request, response) {
             });
         }
 
-        order.payment_status = status;
-        
-        if (status === 'Đã thanh toán' || status === 'paid') {
-            order.isPaid = true;
+        // Map các trạng thái cũ → thường dùng trong tableOrder
+        if (status === 'paid' || status === 'Đã thanh toán') {
+            order.paymentStatus = 'paid';
             order.paidAt = new Date();
-        }
-
-        if (status === 'Đã hủy' || status === 'cancelled') {
-            order.cancelReason = cancelReason || '';
-            order.cancelledAt = new Date();
+            order.status = 'paid';
+        } else if (status === 'cancelled' || status === 'Đã hủy') {
+            order.status = 'cancelled';
+        } else {
+            order.paymentStatus = status;
         }
 
         await order.save();

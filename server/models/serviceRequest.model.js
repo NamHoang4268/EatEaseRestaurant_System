@@ -32,7 +32,7 @@ const serviceRequestSchema = new mongoose.Schema({
     },
     handledBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'user',  // ✅ khớp với mongoose.model("user", ...)
         default: null
     },
     handledAt: {

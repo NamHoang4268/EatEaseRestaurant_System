@@ -20,14 +20,8 @@ const productSchema = new mongoose.Schema({
             ref: 'subCategory',
         }
     ],
-    unit: {
-        type: String,
-        default: "",
-    },
-    stock: {
-        type: Number,
-        default: 0,
-    },
+    // 'stock' đã xóa — nhà hàng dùng status:'available'|'out_of_stock' thay vì số tồn kho
+    // 'unit' đã xóa — không cần đơn vị (“kg”, “L”) cho món ăn nhà hàng
     price: {
         type: Number,
         default: 0,

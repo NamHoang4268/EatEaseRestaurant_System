@@ -23,29 +23,28 @@ const orderItemSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
-    // ===== Kitchen Workflow Fields =====
+    // Kitchen Workflow
     kitchenStatus: {
         type: String,
         enum: ['pending', 'cooking', 'ready', 'served'],
         default: 'pending'
     },
-    sentAt: {         // Khi đơn được chuyển lên bếp
+    sentAt: {
         type: Date,
         default: null
     },
-    cookingStartAt: { // Khi bếp bắt đầu nấu
+    cookingStartAt: {
         type: Date,
         default: null
     },
-    readyAt: {        // Khi món xong
+    readyAt: {
         type: Date,
         default: null
     },
-    servedAt: {       // Khi waiter đã phục vụ ra bàn
+    servedAt: {
         type: Date,
         default: null
     },
-    // ===================================
     addedAt: {
         type: Date,
         default: Date.now
@@ -62,21 +61,12 @@ const tableOrderSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    // Khách hàng (tùy chọn – có thể là Guest)
+    // Khách hàng (tùy chọn – guest hoặc Customer profile)
     customerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer',
         default: null
     },
-    isGuest: {
-        type: Boolean,
-        default: true
-    },
-    guestName: {
-        type: String,
-        default: ''
-    },
-    // ===========================
     items: [orderItemSchema],
     subTotal: {
         type: Number,
@@ -89,7 +79,7 @@ const tableOrderSchema = new mongoose.Schema({
     },
     voucherId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Voucher',
+        ref: 'voucher',
         default: null
     },
     total: {
@@ -101,11 +91,6 @@ const tableOrderSchema = new mongoose.Schema({
         type: String,
         enum: ['active', 'pending_payment', 'paid', 'cancelled'],
         default: 'active'
-    },
-    // Trạng thái gửi bếp
-    sentToKitchen: {
-        type: Boolean,
-        default: false
     },
     sentToKitchenAt: {
         type: Date,
@@ -129,6 +114,16 @@ const tableOrderSchema = new mongoose.Schema({
         enum: ['cash', 'online', null],
         default: null
     },
+    paymentStatus: {
+        type: String,
+        enum: ['pending', 'paid', 'refunded'],
+        default: 'pending'
+    },
+    paymentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Payment',
+        default: null
+    },
     // Stripe online payment
     stripeSessionId: {
         type: String,
@@ -141,7 +136,7 @@ const tableOrderSchema = new mongoose.Schema({
     billChangedAfterPayment: {
         type: Boolean,
         default: false
-    }
+    },
 }, {
     timestamps: true
 });
@@ -150,6 +145,8 @@ const tableOrderSchema = new mongoose.Schema({
 tableOrderSchema.index({ tableId: 1, status: 1 });
 tableOrderSchema.index({ tableNumber: 1, status: 1 });
 tableOrderSchema.index({ customerId: 1 });
+tableOrderSchema.index({ paymentStatus: 1 });
+tableOrderSchema.index({ createdAt: -1 });
 
 const TableOrderModel = mongoose.model('tableOrder', tableOrderSchema);
 

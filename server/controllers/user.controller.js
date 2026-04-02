@@ -9,7 +9,7 @@ import generatedOtp from '../utils/generatedOtp.js';
 import forgotPasswordTemplate from '../utils/forgotPasswordTemplate.js';
 import welcomeEmailTemplate from '../utils/welcomeEmailTemplate.js';
 import jwt from 'jsonwebtoken'
-import OrderModel from '../models/order.model.js'
+import TableOrderModel from '../models/tableOrder.model.js' // ✅ dùng model nhà hàng thực sự
 import { OAuth2Client } from 'google-auth-library'
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -778,65 +778,62 @@ export async function googleLoginController(req, res) {
 }
 
 // Get customer analytics for reports
-
 export async function getCustomerAnalytics(req, res) {
     try {
         const { startDate, endDate } = req.query;
 
-        // Build query for orders
-        const orderQuery = {};
-        if (startDate) {
-            orderQuery.createdAt = { $gte: new Date(startDate) };
-        }
-        if (endDate) {
-            orderQuery.createdAt = {
-                ...orderQuery.createdAt,
-                $lte: new Date(endDate)
-            };
+        // Build query cho tableOrder (model nhà hàng thực sự)
+        const orderQuery = { paymentStatus: 'paid' }; // chỉ tính đơn đã thanh toán
+        if (startDate || endDate) {
+            orderQuery.createdAt = {};
+            if (startDate) orderQuery.createdAt.$gte = new Date(startDate);
+            if (endDate)   orderQuery.createdAt.$lte = new Date(endDate);
         }
 
-        // Get all orders with user info
-        const orders = await OrderModel.find(orderQuery)
-            .populate('userId', 'name email createdAt')
+        // TableOrder dùng 'customerId' (guest) hoặc user đăng nhập qua table QR
+        const orders = await TableOrderModel.find(orderQuery)
+            .populate({ path: 'customerId', select: 'name phone createdAt' })
             .sort({ createdAt: -1 });
 
-        // Calculate customer metrics
+        // Tính metrics theo đơn hàng
         const customerStats = {};
 
         orders.forEach(order => {
-            if (!order.userId) return;
+            // xác định key: dùng customerId nếu có, fallback guestName
+            const custKey = order.customerId
+                ? order.customerId._id.toString()
+                : (order.guestName || 'guest_anonymous');
 
-            const userId = order.userId._id.toString();
-
-            if (!customerStats[userId]) {
-                customerStats[userId] = {
-                    userId: order.userId._id,
-                    name: order.userId.name,
-                    email: order.userId.email,
+            if (!customerStats[custKey]) {
+                customerStats[custKey] = {
+                    customerId: order.customerId?._id || null,
+                    name: order.customerId?.name || order.guestName || 'Khách vãng lai',
+                    phone: order.customerId?.phone || null,
+                    isGuest: order.isGuest,
                     orderCount: 0,
                     totalRevenue: 0,
-                    joinedDate: order.userId.createdAt
+                    joinedDate: order.customerId?.createdAt || order.createdAt
                 };
             }
 
-            customerStats[userId].orderCount += 1;
-            customerStats[userId].totalRevenue += order.totalAmt || 0;
+            customerStats[custKey].orderCount += 1;
+            customerStats[custKey].totalRevenue += order.total || 0; // tableOrder dùng 'total'
         });
 
-        // Convert to array and sort
+        // Convert sang array và sort
         const customersArray = Object.values(customerStats);
 
-        // Top customers by order count
+        // Top 10 theo số đơn
         const topByOrders = [...customersArray]
             .sort((a, b) => b.orderCount - a.orderCount)
             .slice(0, 10);
 
-        // Top customers by revenue
+        // Top 10 theo doanh thu
         const topByRevenue = [...customersArray]
             .sort((a, b) => b.totalRevenue - a.totalRevenue)
             .slice(0, 10);
 
-        // New vs returning customers
+        // Khách mới (30 ngày gần nhất) vs quay lại
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -848,10 +845,10 @@ export async function getCustomerAnalytics(req, res) {
             c.orderCount > 1
         ).length;
 
-        // Customer growth by month
+        // Tăng trưởng theo tháng
         const customerGrowth = {};
         customersArray.forEach(customer => {
-            const month = new Date(customer.joinedDate).toISOString().slice(0, 7); // YYYY-MM
+            const month = new Date(customer.joinedDate).toISOString().slice(0, 7);
             customerGrowth[month] = (customerGrowth[month] || 0) + 1;
         });
 
