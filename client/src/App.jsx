@@ -44,9 +44,6 @@ function App() {
         '/table-order-management',
         '/table-payment-success',
         '/kitchen',
-        '/waiter-board',
-        '/chef-board',
-        '/cashier-board',
         '/customer-checkin',
     ].some((path) => location.pathname.startsWith(path));
 

@@ -15,7 +15,7 @@ import CategoryPage from './../pages/CategoryPage';
 import AdminPermission from '../layouts/AdminPermission';
 import TableOrdersPermission from '../layouts/TableOrdersPermission';
 import RoleGuard from '../layouts/RoleGuard';
-import DashboardLayout from '../layouts/DashboardLayout';
+
 import ProductListPage from '../pages/ProductListPage';
 import ProductDisplayPage from '../pages/ProductDisplayPage';
 import ProtectedRoute from './ProtectedRoute';
@@ -43,6 +43,8 @@ import DashboardRouter from '../pages/DashboardRouter';
 import ChefDashboard from '@/pages/ChefDashboard';
 import CashierDashboard from '@/pages/CashierDashboard';
 import UnifiedChatPage from '@/pages/UnifiedChatPage';
+import MyOrdersPage from '../pages/MyOrdersPage';
+import AddressPage from '../pages/AddressPage';
 
 const router = createBrowserRouter([
     {
@@ -88,35 +90,6 @@ const router = createBrowserRouter([
                         <TablePaymentSuccessPage />
                     </ProtectedRoute>
                 ),
-            },
-
-            // === STAFF BOARDS (dùng chung DashboardLayout: Sidebar + TopNav) ===
-            {
-                path: 'waiter-board',
-                element: (
-                    <RoleGuard allowedRoles={['WAITER', 'ADMIN']}>
-                        <DashboardLayout />
-                    </RoleGuard>
-                ),
-                children: [{ index: true, element: <WaiterBoardPage /> }],
-            },
-            {
-                path: 'chef-board',
-                element: (
-                    <RoleGuard allowedRoles={['CHEF', 'ADMIN']}>
-                        <DashboardLayout />
-                    </RoleGuard>
-                ),
-                children: [{ index: true, element: <ChefDashboard /> }],
-            },
-            {
-                path: 'cashier-board',
-                element: (
-                    <RoleGuard allowedRoles={['CASHIER', 'ADMIN']}>
-                        <DashboardLayout />
-                    </RoleGuard>
-                ),
-                children: [{ index: true, element: <CashierDashboard /> }],
             },
 
             // === AUTH ===
@@ -182,10 +155,38 @@ const router = createBrowserRouter([
                 children: [
                     { index: true, element: <DashboardRouter /> },
                     { path: 'profile', element: <Profile /> },
+                    { path: 'chat-support-customer', element: <UnifiedChatPage /> },
+                    
+                    // === USER PAGES ===
+                    { path: 'my-orders', element: <MyOrdersPage /> },
+                    { path: 'address', element: <AddressPage /> },
+                    
+                    // === STAFF BOARDS ===
                     {
-                        path: 'chat-support-customer',
-                        element: <UnifiedChatPage />,
+                        path: 'waiter-board',
+                        element: (
+                            <RoleGuard allowedRoles={['WAITER', 'ADMIN']}>
+                                <WaiterBoardPage />
+                            </RoleGuard>
+                        ),
                     },
+                    {
+                        path: 'chef-board',
+                        element: (
+                            <RoleGuard allowedRoles={['CHEF', 'ADMIN']}>
+                                <ChefDashboard />
+                            </RoleGuard>
+                        ),
+                    },
+                    {
+                        path: 'cashier-board',
+                        element: (
+                            <RoleGuard allowedRoles={['CASHIER', 'ADMIN']}>
+                                <CashierDashboard />
+                            </RoleGuard>
+                        ),
+                    },
+                    
                     {
                         path: 'category',
                         element: (

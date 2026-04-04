@@ -456,15 +456,24 @@ const UserMenu = ({ close }) => {
                 {/* Personal Section - USER only */}
                 <MenuSection
                     title="Cá nhân"
-                    icon="⚙️"
+                    icon="👤"
                     sectionKey="personal"
-                    show={user.role === 'USER'}
+                    show={user.role === 'CUSTOMER'}
                 >
                     <MenuLink to="/dashboard/profile">
-                        Tài khoản cá nhân
+                        Thông tin cá nhân
                     </MenuLink>
                     <MenuLink to="/dashboard/my-orders">
-                        Lịch sử mua hàng
+                        Đơn hàng của tôi
+                    </MenuLink>
+                    <MenuLink to="/dashboard/address">
+                        Địa chỉ giao hàng
+                    </MenuLink>
+                    <MenuLink to="/booking">
+                        Đặt bàn
+                    </MenuLink>
+                    <MenuLink to="/dashboard/chat-support-customer">
+                        Hỗ trợ khách hàng
                     </MenuLink>
                 </MenuSection>
 

@@ -2,9 +2,6 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
 import AdminDashboard from './AdminDashboard';
-import WaiterDashboard from './WaiterDashboard';
-import CashierDashboard from './CashierDashboard';
-import ChefDashboard from './ChefDashboard';
 
 const DashboardRouter = () => {
     const user = useSelector((state) => state?.user);
@@ -17,11 +14,11 @@ const DashboardRouter = () => {
         case 'ADMIN':
             return <AdminDashboard />;
         case 'WAITER':
-            return <WaiterDashboard />;
+            return <Navigate to="/dashboard/waiter-board" replace />;
         case 'CASHIER':
-            return <CashierDashboard />;
+            return <Navigate to="/dashboard/cashier-board" replace />;
         case 'CHEF':
-            return <ChefDashboard />;
+            return <Navigate to="/dashboard/chef-board" replace />;
         default:
             return (
                 <div className="flex flex-col items-center justify-center p-8 mt-10">

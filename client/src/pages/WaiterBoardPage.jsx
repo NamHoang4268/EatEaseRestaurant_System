@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { FiCheckCircle, FiRefreshCw, FiClock, FiWifi, FiWifiOff, FiBell, FiX, FiMessageCircle, FiSend } from 'react-icons/fi';
 import { MdTableRestaurant } from 'react-icons/md';
 import { BsBellFill, BsChatDots } from 'react-icons/bs';
+import { UtensilsCrossed, Users } from 'lucide-react';
 
 const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8080';
 
@@ -38,6 +39,10 @@ export default function WaiterBoardPage() {
     const [handlingId, setHandlingId] = useState(null);
     const [tableOrders, setTableOrders] = useState([]);
     const [cancelingId, setCancelingId] = useState(null);
+    
+    // Search states
+    const [searchTableQuery, setSearchTableQuery] = useState('');
+    const [searchReadyQuery, setSearchReadyQuery] = useState('');
     
     // Support Chat States
     const [chatRequests, setChatRequests] = useState([]);
@@ -398,15 +403,26 @@ export default function WaiterBoardPage() {
     }, {});
 
     return (
-        <div className="min-h-screen bg-amber-950 text-white">
+        <div className="min-h-screen bg-background text-foreground">
             {/* Header */}
-            <div className="bg-amber-900/80 border-b border-amber-800 px-6 py-4 sticky top-0 z-10">
-                <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-4">
+            <div className="border-b border-border px-6 py-4 sticky top-0 z-10 shadow-sm"
+                style={{
+                    background: 'rgba(var(--card-rgb), 0.95)',
+                    backdropFilter: 'blur(12px)',
+                }}
+            >
+                <div className="mx-auto flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <MdTableRestaurant className="text-amber-400 text-3xl" />
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                            style={{
+                                background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                            }}
+                        >
+                            <MdTableRestaurant className="text-white text-xl" />
+                        </div>
                         <div>
-                            <h1 className="text-xl font-bold leading-none">Waiter Board</h1>
-                            <p className="text-amber-300/60 text-xs mt-0.5">
+                            <h1 className="text-xl font-bold leading-none">Waiter Dashboard</h1>
+                            <p className="text-muted-foreground text-xs mt-0.5">
                                 {clock.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                             </p>
                         </div>
@@ -415,29 +431,41 @@ export default function WaiterBoardPage() {
                     {/* Stats */}
                     <div className="hidden sm:flex items-center gap-4">
                         <div className="text-center">
-                            <p className="text-2xl font-bold text-amber-300">{items.length}</p>
-                            <p className="text-xs text-amber-500">Chờ phục vụ</p>
+                            <div className="flex items-center justify-center gap-1.5 mb-1">
+                                <UtensilsCrossed className="w-5 h-5" style={{ color: '#C96048' }} />
+                                <p className="text-2xl font-bold" style={{ color: '#C96048' }}>{items.length}</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Chờ phục vụ</p>
                         </div>
-                        <div className="h-8 w-px bg-amber-800" />
+                        <div className="h-8 w-px bg-border" />
                         <div className="text-center">
-                            <p className="text-2xl font-bold text-white">{Object.keys(grouped).length}</p>
-                            <p className="text-xs text-amber-500">Bàn</p>
+                            <div className="flex items-center justify-center gap-1.5 mb-1">
+                                <Users className="w-5 h-5 text-foreground" />
+                                <p className="text-2xl font-bold text-foreground">{Object.keys(grouped).length}</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Bàn</p>
                         </div>
                         {serviceRequests.length > 0 && (
                             <>
-                                <div className="h-8 w-px bg-amber-800" />
+                                <div className="h-8 w-px bg-border" />
                                 <div className="text-center">
-                                    <p className="text-2xl font-bold text-orange-400 animate-bounce">{serviceRequests.length}</p>
-                                    <p className="text-xs text-orange-500">Gọi phục vụ</p>
+                                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                                        <FiBell className="w-5 h-5 text-orange-500 dark:text-orange-400 animate-bounce" />
+                                        <p className="text-2xl font-bold text-orange-500 dark:text-orange-400 animate-bounce">{serviceRequests.length}</p>
+                                    </div>
+                                    <p className="text-xs text-orange-600 dark:text-orange-500">Gọi phục vụ</p>
                                 </div>
                             </>
                         )}
                         {chatRequests.length > 0 && (
                             <>
-                                <div className="h-8 w-px bg-amber-800" />
+                                <div className="h-8 w-px bg-border" />
                                 <div className="text-center">
-                                    <p className="text-2xl font-bold text-blue-400 animate-bounce">{chatRequests.length}</p>
-                                    <p className="text-xs text-blue-500">Chat mới</p>
+                                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                                        <BsChatDots className="w-5 h-5 text-blue-500 dark:text-blue-400 animate-bounce" />
+                                        <p className="text-2xl font-bold text-blue-500 dark:text-blue-400 animate-bounce">{chatRequests.length}</p>
+                                    </div>
+                                    <p className="text-xs text-blue-600 dark:text-blue-500">Chat mới</p>
                                 </div>
                             </>
                         )}
@@ -448,9 +476,9 @@ export default function WaiterBoardPage() {
                         <div className="relative">
                             <button
                                 onClick={() => setShowNotifications(!showNotifications)}
-                                className="relative flex items-center justify-center w-10 h-10 rounded-full bg-amber-800 hover:bg-amber-700 transition"
+                                className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-card hover:bg-accent border border-border transition text-foreground active:scale-95"
                             >
-                                <FiBell size={18} className="text-amber-200" />
+                                <FiBell size={18} />
                                 {unreadCount > 0 && (
                                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
                                         {unreadCount > 9 ? '9+' : unreadCount}
@@ -460,16 +488,25 @@ export default function WaiterBoardPage() {
                             
                             {/* Notification Dropdown */}
                             {showNotifications && (
-                                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
-                                    <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-4 py-3 flex items-center justify-between">
+                                <div className="absolute right-0 mt-2 w-80 rounded-xl shadow-2xl border border-border overflow-hidden z-50"
+                                    style={{
+                                        background: 'rgba(var(--card-rgb), 0.98)',
+                                        backdropFilter: 'blur(12px)',
+                                    }}
+                                >
+                                    <div className="px-4 py-3 flex items-center justify-between"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                                        }}
+                                    >
                                         <h3 className="font-bold text-white">Thông báo Chat</h3>
-                                        <button onClick={() => setShowNotifications(false)} className="text-white/80 hover:text-white">
+                                        <button onClick={() => setShowNotifications(false)} className="text-white/80 hover:text-white transition">
                                             <FiX size={18} />
                                         </button>
                                     </div>
-                                    <div className="max-h-96 overflow-y-auto">
+                                    <div className="max-h-96 overflow-y-auto custom-scrollbar">
                                         {myConversations.filter(c => c.unread > 0).length === 0 ? (
-                                            <div className="p-6 text-center text-gray-500">
+                                            <div className="p-6 text-center text-muted-foreground">
                                                 <FiBell size={32} className="mx-auto mb-2 opacity-30" />
                                                 <p className="text-sm">Không có tin nhắn mới</p>
                                             </div>
@@ -481,15 +518,15 @@ export default function WaiterBoardPage() {
                                                         openChat(conv.conversationId);
                                                         setShowNotifications(false);
                                                     }}
-                                                    className="px-4 py-3 border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition"
+                                                    className="px-4 py-3 border-b border-border hover:bg-accent cursor-pointer transition"
                                                 >
                                                     <div className="flex items-center justify-between mb-1">
-                                                        <p className="font-semibold text-gray-800">{conv.customerName}</p>
+                                                        <p className="font-semibold text-foreground">{conv.customerName}</p>
                                                         <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">
                                                             {conv.unread}
                                                         </span>
                                                     </div>
-                                                    <p className="text-sm text-gray-600 truncate">
+                                                    <p className="text-sm text-muted-foreground truncate">
                                                         {conv.messages?.[conv.messages.length - 1]?.text || 'Tin nhắn mới'}
                                                     </p>
                                                 </div>
@@ -500,13 +537,17 @@ export default function WaiterBoardPage() {
                             )}
                         </div>
                         
-                        <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${connected ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'}`}>
+                        <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
+                            connected 
+                                ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' 
+                                : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                        }`}>
                             {connected ? <FiWifi size={12} /> : <FiWifiOff size={12} />}
                             {connected ? 'Real-time' : 'Offline'}
                         </div>
                         <button
-                            onClick={() => { fetchReadyItems(); fetchServiceRequests(); }}
-                            className="flex items-center gap-2 bg-amber-800 hover:bg-amber-700 px-3 py-2 rounded-xl transition text-sm"
+                            onClick={() => { fetchReadyItems(); fetchServiceRequests(); fetchTableOrders(); }}
+                            className="flex items-center gap-2 bg-card hover:bg-accent border border-border px-3 py-2 rounded-xl transition text-sm text-foreground active:scale-95"
                         >
                             <FiRefreshCw size={14} /> Làm mới
                         </button>
@@ -515,31 +556,40 @@ export default function WaiterBoardPage() {
             </div>
 
             {/* Content */}
-            <div className="max-w-screen-xl mx-auto p-6 space-y-8">
+            <div className="mx-auto p-6 space-y-8">
 
                 {/* Chat Requests Panel */}
                 {chatRequests.length > 0 && (
                     <div>
-                        <h2 className="text-lg font-bold text-blue-400 mb-3 flex items-center gap-2">
+                        <h2 className="text-lg font-bold text-blue-500 dark:text-blue-400 mb-3 flex items-center gap-2">
                             <BsChatDots className="animate-bounce" /> Yêu cầu Chat ({chatRequests.length})
                         </h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {chatRequests.map((req) => (
-                                <div key={req.conversationId} className="bg-blue-900/40 border border-blue-600/60 rounded-2xl p-4 flex flex-col gap-3">
+                                <div key={req.conversationId} className="rounded-2xl p-4 flex flex-col gap-3 border border-border transition-all hover:shadow-lg active:scale-[0.99]"
+                                    style={{
+                                        background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.08) 100%)',
+                                    }}
+                                >
                                     <div className="flex items-start justify-between">
                                         <div>
-                                            <p className="font-bold text-blue-300 text-base">💬 {req.customerName}</p>
-                                            <p className="text-xs text-blue-400/70 mt-0.5">
+                                            <p className="font-bold text-blue-600 dark:text-blue-400 text-base flex items-center gap-1.5">
+                                                <BsChatDots className="w-4 h-4" /> {req.customerName}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">
                                                 {req.tableNumber ? `Bàn ${req.tableNumber}` : 'Khách online'}
                                             </p>
                                         </div>
-                                        <span className="text-xs text-blue-500/60">
+                                        <span className="text-xs text-muted-foreground">
                                             {new Date(req.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
                                     <button
                                         onClick={() => acceptChatRequest(req.conversationId)}
-                                        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-xl text-sm font-semibold transition"
+                                        className="w-full flex items-center justify-center gap-2 text-white py-2 rounded-xl text-sm font-semibold transition active:scale-95"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                                        }}
                                     >
                                         <FiCheckCircle size={14} /> Nhận Chat
                                     </button>
@@ -552,16 +602,21 @@ export default function WaiterBoardPage() {
                 {/* My Conversations Panel */}
                 {myConversations.length > 0 && (
                     <div>
-                        <h2 className="text-lg font-bold text-blue-300 mb-3 flex items-center gap-2">
+                        <h2 className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
                             <FiMessageCircle /> Chat của tôi ({myConversations.length})
                         </h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {myConversations.map((conv) => (
-                                <div key={conv.conversationId} className="bg-blue-900/30 border border-blue-700/50 rounded-2xl p-4 flex flex-col gap-3">
+                                <div key={conv.conversationId} className="rounded-2xl p-4 flex flex-col gap-3 border border-border transition-all hover:shadow-lg active:scale-[0.99]"
+                                    style={{
+                                        background: 'rgba(var(--card-rgb), 0.98)',
+                                        backdropFilter: 'blur(12px)',
+                                    }}
+                                >
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
-                                            <p className="font-bold text-blue-200 text-base">{conv.customerName}</p>
-                                            <p className="text-xs text-blue-400/70 mt-0.5">
+                                            <p className="font-bold text-foreground text-base">{conv.customerName}</p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">
                                                 {conv.messages?.length || 0} tin nhắn
                                             </p>
                                         </div>
@@ -574,13 +629,16 @@ export default function WaiterBoardPage() {
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => openChat(conv.conversationId)}
-                                            className="flex-1 flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-xl text-sm font-semibold transition"
+                                            className="flex-1 flex items-center justify-center gap-1 text-white py-2 rounded-xl text-sm font-semibold transition active:scale-95"
+                                            style={{
+                                                background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                                            }}
                                         >
                                             <FiMessageCircle size={14} /> Mở Chat
                                         </button>
                                         <button
                                             onClick={() => closeConversation(conv.conversationId)}
-                                            className="flex items-center justify-center gap-1 bg-red-700 hover:bg-red-600 text-white px-3 py-2 rounded-xl text-sm transition"
+                                            className="flex items-center justify-center gap-1 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-xl text-sm transition active:scale-95"
                                         >
                                             <FiX size={14} />
                                         </button>
@@ -594,38 +652,44 @@ export default function WaiterBoardPage() {
                 {/* Service Requests Panel */}
                 {serviceRequests.length > 0 && (
                     <div>
-                        <h2 className="text-lg font-bold text-orange-400 mb-3 flex items-center gap-2">
+                        <h2 className="text-lg font-bold text-orange-600 dark:text-orange-400 mb-3 flex items-center gap-2">
                             <FiBell className="animate-bounce" /> Yêu cầu gọi phục vụ ({serviceRequests.length})
                         </h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {serviceRequests.map((req) => (
-                                <div key={req._id} className="bg-orange-900/40 border border-orange-600/60 rounded-2xl p-4 flex flex-col gap-3">
+                                <div key={req._id} className="rounded-2xl p-4 flex flex-col gap-3 border border-border transition-all hover:shadow-lg active:scale-[0.99]"
+                                    style={{
+                                        background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(234, 88, 12, 0.08) 100%)',
+                                    }}
+                                >
                                     <div className="flex items-start justify-between">
                                         <div>
-                                            <p className="font-bold text-orange-300 text-base">🔔 Bàn {req.tableNumber}</p>
-                                            <p className="text-xs text-orange-400/70 mt-0.5">
+                                            <p className="font-bold text-orange-600 dark:text-orange-400 text-base flex items-center gap-1.5">
+                                                <FiBell className="w-4 h-4" /> Bàn {req.tableNumber}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">
                                                 {req.type === 'cancel_item' ? 'Muốn huỷ món' : req.type === 'assistance' ? 'Cần hỗ trợ' : 'Khác'}
                                             </p>
                                         </div>
-                                        <span className="text-xs text-orange-500/60">
+                                        <span className="text-xs text-muted-foreground">
                                             {new Date(req.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
                                     {req.note && (
-                                        <p className="text-sm text-white/80 bg-orange-950/50 rounded-lg px-3 py-2 italic">"{req.note}"</p>
+                                        <p className="text-sm text-foreground bg-accent rounded-lg px-3 py-2 italic border border-border">"{req.note}"</p>
                                     )}
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => handleServiceRequest(req._id, 'done')}
                                             disabled={handlingId === req._id}
-                                            className="flex-1 flex items-center justify-center gap-1 bg-green-700 hover:bg-green-600 text-white py-2 rounded-xl text-sm font-semibold transition disabled:opacity-60"
+                                            className="flex-1 flex items-center justify-center gap-1 bg-green-600 hover:bg-green-500 text-white py-2 rounded-xl text-sm font-semibold transition disabled:opacity-60 active:scale-95"
                                         >
                                             <FiCheckCircle size={14} /> Đã xử lý
                                         </button>
                                         <button
                                             onClick={() => handleServiceRequest(req._id, 'rejected')}
                                             disabled={handlingId === req._id}
-                                            className="flex items-center justify-center gap-1 bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-xl text-sm transition disabled:opacity-60"
+                                            className="flex items-center justify-center gap-1 bg-accent hover:bg-accent/80 text-foreground border border-border px-3 py-2 rounded-xl text-sm transition disabled:opacity-60 active:scale-95"
                                         >
                                             <FiX size={14} />
                                         </button>
@@ -636,109 +700,221 @@ export default function WaiterBoardPage() {
                     </div>
                 )}
 
-                {/* === TẤT CẢ ĐƠN THEO BÀN (Cancel pending items) === */}
-                {tableOrders.length > 0 && (
-                    <div>
-                        <h2 className="text-lg font-bold text-amber-300 mb-3 flex items-center gap-2">
-                            <MdTableRestaurant /> Đơn đang chạy ({tableOrders.length} bàn)
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                            {tableOrders.map((order) => (
-                                <div key={order._id} className="bg-amber-900/30 border border-amber-700/50 rounded-2xl overflow-hidden">
-                                    {/* Table header */}
-                                    <div className="bg-amber-900/50 px-4 py-3 flex items-center justify-between">
-                                        <h3 className="font-bold text-amber-300">🪑 Bàn {order.tableNumber}</h3>
-                                        <span className="text-xs text-amber-500">{order.items.length} món</span>
-                                    </div>
-                                    {/* Items */}
-                                    <div className="p-3 space-y-2">
-                                        {order.items.map((item) => {
-                                            const isPending = item.kitchenStatus === 'pending';
-                                            const statusLabel = {
-                                                pending: { text: 'Chờ bếp', cls: 'bg-yellow-900/60 text-yellow-300' },
-                                                cooking: { text: 'Đang nấu', cls: 'bg-blue-900/60 text-blue-300' },
-                                                ready:   { text: 'Xong', cls: 'bg-green-900/60 text-green-300' },
-                                                served:  { text: 'Đã phục vụ', cls: 'bg-gray-700 text-gray-300' },
-                                            }[item.kitchenStatus] || { text: item.kitchenStatus, cls: 'bg-gray-700 text-gray-300' };
-                                            return (
-                                                <div key={item._id} className="flex items-center justify-between gap-2 bg-amber-950/40 rounded-xl px-3 py-2">
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-medium text-sm truncate">{item.name}</p>
-                                                        <p className="text-xs text-amber-500/70">x{item.quantity} · {item.price.toLocaleString('vi-VN')}đ</p>
-                                                    </div>
-                                                    <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${statusLabel.cls}`}>
-                                                        {statusLabel.text}
-                                                    </span>
-                                                    {isPending && (
-                                                        <button
-                                                            onClick={() => cancelItem(order._id, item._id, item.name)}
-                                                            disabled={cancelingId === item._id}
-                                                            className="flex items-center gap-1 bg-red-800/70 hover:bg-red-700 text-red-200 px-2 py-1 rounded-lg text-xs font-semibold transition disabled:opacity-50 whitespace-nowrap"
-                                                        >
-                                                            <FiX size={12} /> Huỷ
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                {/* === MAIN 2-COLUMN LAYOUT === */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    {/* LEFT COLUMN: Đơn đang chạy theo bàn */}
+                    <div className="flex flex-col">
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: '#C96048' }}>
+                                <MdTableRestaurant className="w-6 h-6" /> Đơn đang chạy
+                                <span className="text-sm font-normal text-muted-foreground">({tableOrders.length} bàn)</span>
+                            </h2>
+                        </div>
+
+                        {/* Search for tables */}
+                        {tableOrders.length > 0 && (
+                            <div className="mb-3">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={searchTableQuery}
+                                        onChange={(e) => setSearchTableQuery(e.target.value)}
+                                        placeholder="🔍 Tìm bàn..."
+                                        className="w-full px-3 py-2 pr-8 rounded-lg text-sm border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                                    />
+                                    {searchTableQuery && (
+                                        <button
+                                            onClick={() => setSearchTableQuery('')}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                        >
+                                            <FiX size={16} />
+                                        </button>
+                                    )}
                                 </div>
-                            ))}
+                            </div>
+                        )}
+
+                        <div className="overflow-y-auto space-y-3 pr-2 custom-scrollbar" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+                            {tableOrders.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground text-sm">
+                                    Không có đơn nào đang chạy
+                                </div>
+                            ) : (
+                                tableOrders
+                                    .filter(order => 
+                                        searchTableQuery.trim() === '' || 
+                                        order.tableNumber.toString().includes(searchTableQuery.toLowerCase())
+                                    )
+                                    .map((order) => (
+                                        <div key={order._id} className="rounded-2xl overflow-hidden border border-border transition-all hover:shadow-lg active:scale-[0.99]"
+                                            style={{
+                                                background: 'rgba(var(--card-rgb), 0.98)',
+                                                backdropFilter: 'blur(12px)',
+                                            }}
+                                        >
+                                            {/* Table header */}
+                                            <div className="px-4 py-3 flex items-center justify-between border-b border-border"
+                                                style={{
+                                                    background: 'linear-gradient(135deg, rgba(201, 96, 72, 0.15) 0%, rgba(217, 122, 102, 0.08) 100%)',
+                                                }}
+                                            >
+                                                <h3 className="font-bold flex items-center gap-2" style={{ color: '#C96048' }}>
+                                                    <MdTableRestaurant className="w-5 h-5" /> Bàn {order.tableNumber}
+                                                </h3>
+                                                <span className="text-xs text-muted-foreground">{order.items.length} món</span>
+                                            </div>
+                                            {/* Items */}
+                                            <div className="p-3 space-y-2">
+                                                {order.items.map((item) => {
+                                                    const isPending = item.kitchenStatus === 'pending';
+                                                    const statusLabel = {
+                                                        pending: { text: 'Chờ bếp', cls: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' },
+                                                        cooking: { text: 'Đang nấu', cls: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
+                                                        ready:   { text: 'Xong', cls: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
+                                                        served:  { text: 'Đã phục vụ', cls: 'bg-accent text-muted-foreground' },
+                                                    }[item.kitchenStatus] || { text: item.kitchenStatus, cls: 'bg-accent text-muted-foreground' };
+                                                    return (
+                                                        <div key={item._id} className="flex items-center justify-between gap-2 bg-accent/50 rounded-xl px-3 py-2 border border-border">
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-sm truncate text-foreground">{item.name}</p>
+                                                                <p className="text-xs text-muted-foreground">x{item.quantity} · {item.price.toLocaleString('vi-VN')}đ</p>
+                                                            </div>
+                                                            <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap font-medium ${statusLabel.cls}`}>
+                                                                {statusLabel.text}
+                                                            </span>
+                                                            {isPending && (
+                                                                <button
+                                                                    onClick={() => cancelItem(order._id, item._id, item.name)}
+                                                                    disabled={cancelingId === item._id}
+                                                                    className="flex items-center gap-1 bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded-lg text-xs font-semibold transition disabled:opacity-50 whitespace-nowrap active:scale-95"
+                                                                >
+                                                                    <FiX size={12} /> Huỷ
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))
+                            )}
                         </div>
                     </div>
-                )}
 
-                {/* === MÓN SẴN SÀNG PHỤC VỤ === */}
-                {loading ? (
-                    <div className="flex items-center justify-center h-64 text-amber-400">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400 mr-3" />
-                        Đang tải...
-                    </div>
-                ) : items.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 text-amber-400/60 gap-3">
-                        <FiCheckCircle className="text-6xl text-green-400" />
-                        <p className="text-xl">Tất cả món đã được phục vụ 🎉</p>
-                        <p className="text-sm">Không có món nào đang chờ.</p>
-                    </div>
-                ) : (
-                    <>
-                        {/* Group by table */}
-                        {Object.entries(grouped).map(([tableName, tableItems]) => (
-                            <div key={tableName} className="mb-8">
-                                <h2 className="text-lg font-bold text-amber-300 mb-3 flex items-center gap-2">
-                                    <MdTableRestaurant className="text-amber-400" />
-                                    Bàn {tableName}
-                                    <span className="text-sm font-normal text-amber-500 ml-1">({tableItems.length} món)</span>
-                                </h2>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                    {tableItems.map((item) => {
+                    {/* RIGHT COLUMN: Món sẵn sàng từ bếp */}
+                    <div className="flex flex-col">
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-lg font-bold text-green-600 dark:text-green-400 flex items-center gap-2">
+                                <FiCheckCircle className="w-6 h-6" /> Sẵn sàng phục vụ
+                                <span className="text-sm font-normal text-muted-foreground">({items.length} món)</span>
+                            </h2>
+                        </div>
+
+                        {/* Search for ready items */}
+                        {items.length > 0 && (
+                            <div className="mb-3">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={searchReadyQuery}
+                                        onChange={(e) => setSearchReadyQuery(e.target.value)}
+                                        placeholder="🔍 Tìm món hoặc bàn..."
+                                        className="w-full px-3 py-2 pr-8 rounded-lg text-sm border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                                    />
+                                    {searchReadyQuery && (
+                                        <button
+                                            onClick={() => setSearchReadyQuery('')}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                        >
+                                            <FiX size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="overflow-y-auto space-y-3 pr-2 custom-scrollbar" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+                            {loading ? (
+                                <div className="flex items-center justify-center h-64 text-muted-foreground">
+                                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 mr-3" style={{ borderColor: '#C96048' }} />
+                                    Đang tải...
+                                </div>
+                            ) : items.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">
+                                    <FiCheckCircle className="text-6xl text-green-500" />
+                                    <p className="text-lg font-semibold text-foreground">Tất cả món đã được phục vụ 🎉</p>
+                                    <p className="text-sm">Không có món nào đang chờ.</p>
+                                </div>
+                            ) : (
+                                items
+                                    .filter(item => {
+                                        if (searchReadyQuery.trim() === '') return true;
+                                        const query = searchReadyQuery.toLowerCase();
+                                        const productName = item.product?.name?.toLowerCase() || '';
+                                        let tableName = 'không rõ';
+                                        if (item.tableId) {
+                                            if (typeof item.tableId === 'object') {
+                                                tableName = (item.tableId.tableNumber || item.tableId.name || item.tableId.tableName || tableIdToNumber[item.tableId._id] || item.tableId._id).toString().toLowerCase();
+                                            } else {
+                                                tableName = (tableIdToNumber[item.tableId] || item.tableId).toString().toLowerCase();
+                                            }
+                                        }
+                                        return productName.includes(query) || tableName.includes(query);
+                                    })
+                                    .map((item) => {
                                         const readyMinutes = item.readyAt
                                             ? Math.floor((Date.now() - new Date(item.readyAt)) / 60000)
                                             : null;
                                         const isUrgent = readyMinutes !== null && readyMinutes >= 5;
+                                        
+                                        // Get table name
+                                        let tableName = 'Không rõ';
+                                        if (item.tableId) {
+                                            if (typeof item.tableId === 'object') {
+                                                tableName = item.tableId.tableNumber || item.tableId.name || item.tableId.tableName || tableIdToNumber[item.tableId._id] || item.tableId._id;
+                                            } else {
+                                                tableName = tableIdToNumber[item.tableId] || item.tableId;
+                                            }
+                                        }
+                                        
                                         return (
                                             <div
                                                 key={item._id}
-                                                className={`rounded-2xl p-5 flex flex-col gap-4 transition border ${
+                                                className={`rounded-2xl p-4 flex flex-col gap-3 transition border ${
                                                     isUrgent
-                                                        ? 'bg-red-900/30 border-red-600 animate-pulse'
-                                                        : 'bg-amber-900/40 border-amber-700 hover:border-amber-500'
+                                                        ? 'border-red-500 animate-pulse'
+                                                        : 'border-border hover:shadow-lg'
                                                 }`}
+                                                style={{
+                                                    background: isUrgent 
+                                                        ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.08) 100%)'
+                                                        : 'rgba(var(--card-rgb), 0.98)',
+                                                    backdropFilter: 'blur(12px)',
+                                                }}
                                             >
                                                 <div className="flex items-start justify-between">
-                                                    <div>
-                                                        <p className="text-lg font-bold mt-1">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ 
+                                                                background: 'linear-gradient(135deg, rgba(201, 96, 72, 0.2) 0%, rgba(217, 122, 102, 0.1) 100%)',
+                                                                color: '#C96048'
+                                                            }}>
+                                                                Bàn {tableName}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-base font-bold text-foreground">
                                                             {item.product?.name || 'Món ăn'}
                                                         </p>
-                                                        <p className="text-amber-300/70 text-sm">x{item.quantity}</p>
+                                                        <p className="text-muted-foreground text-sm">x{item.quantity}</p>
                                                     </div>
-                                                    <div className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full border border-green-500/40 whitespace-nowrap">
+                                                    <div className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs px-2 py-1 rounded-full border border-green-500/40 whitespace-nowrap font-medium">
                                                         Sẵn sàng ✓
                                                     </div>
                                                 </div>
 
                                                 {readyMinutes !== null && (
-                                                    <p className={`text-xs flex items-center gap-1 ${isUrgent ? 'text-red-400 font-semibold' : 'text-amber-400/70'}`}>
+                                                    <p className={`text-xs flex items-center gap-1 ${isUrgent ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-muted-foreground'}`}>
                                                         <FiClock size={12} />
                                                         {isUrgent ? `⚠️ Đã chờ ${readyMinutes} phút!` : `Xong lúc ${new Date(item.readyAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
                                                     </p>
@@ -747,32 +923,45 @@ export default function WaiterBoardPage() {
                                                 <button
                                                     onClick={() => markServed(item.orderId, item._id)}
                                                     disabled={servingId === item._id}
-                                                    className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold py-2.5 rounded-xl transition disabled:opacity-60"
+                                                    className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold py-2.5 rounded-xl transition disabled:opacity-60 active:scale-95"
                                                 >
                                                     <FiCheckCircle />
                                                     {servingId === item._id ? 'Đang xử lý...' : 'Đã phục vụ'}
                                                 </button>
                                             </div>
                                         );
-                                    })}
-                                </div>
-                            </div>
-                        ))}
-                    </>
-                )}
+                                    })
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Chat Modal */}
             {showChatModal && activeChatId && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{
+                        background: 'rgba(0, 0, 0, 0.6)',
+                        backdropFilter: 'blur(8px)',
+                    }}
+                >
+                    <div className="rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden border border-border"
+                        style={{
+                            background: 'rgba(var(--card-rgb), 0.98)',
+                            backdropFilter: 'blur(12px)',
+                        }}
+                    >
                         {/* Modal Header */}
-                        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4 flex items-center justify-between">
+                        <div className="px-6 py-4 flex items-center justify-between"
+                            style={{
+                                background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                            }}
+                        >
                             <div>
                                 <h3 className="text-lg font-bold text-white">
                                     {myConversations.find(c => c.conversationId === activeChatId)?.customerName || 'Chat'}
                                 </h3>
-                                <p className="text-blue-100 text-sm">
+                                <p className="text-white/90 text-sm">
                                     {myConversations.find(c => c.conversationId === activeChatId)?.messages?.length || 0} tin nhắn
                                 </p>
                             </div>
@@ -785,12 +974,12 @@ export default function WaiterBoardPage() {
                         </div>
 
                         {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-6 bg-gray-50 space-y-3">
+                        <div className="flex-1 overflow-y-auto p-6 bg-accent/30 space-y-3 custom-scrollbar">
                             {myConversations.find(c => c.conversationId === activeChatId)?.messages?.map((msg, idx) => {
                                 if (msg.senderRole === 'system') {
                                     return (
                                         <div key={idx} className="flex justify-center">
-                                            <div className="px-3 py-1.5 rounded-full bg-gray-200 text-gray-600 text-xs">
+                                            <div className="px-3 py-1.5 rounded-full bg-accent text-muted-foreground text-xs border border-border">
                                                 {msg.text}
                                             </div>
                                         </div>
@@ -803,10 +992,10 @@ export default function WaiterBoardPage() {
                                         <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl ${
                                             isWaiter 
                                                 ? 'bg-blue-500 text-white rounded-br-sm' 
-                                                : 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm'
+                                                : 'bg-card border border-border text-foreground rounded-bl-sm'
                                         }`}>
                                             <p className="text-sm leading-relaxed">{msg.text}</p>
-                                            <p className={`text-xs mt-1 ${isWaiter ? 'text-blue-100' : 'text-gray-500'}`}>
+                                            <p className={`text-xs mt-1 ${isWaiter ? 'text-blue-100' : 'text-muted-foreground'}`}>
                                                 {new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                             </p>
                                         </div>
@@ -816,7 +1005,7 @@ export default function WaiterBoardPage() {
                         </div>
 
                         {/* Input */}
-                        <div className="bg-white border-t border-gray-200 p-4">
+                        <div className="bg-card border-t border-border p-4">
                             <div className="flex gap-3">
                                 <input
                                     type="text"
@@ -824,12 +1013,15 @@ export default function WaiterBoardPage() {
                                     onChange={(e) => setChatInput(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
                                     placeholder="Nhập tin nhắn..."
-                                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-blue-500 text-gray-800"
+                                    className="flex-1 px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-background text-foreground"
                                 />
                                 <button
                                     onClick={sendChatMessage}
                                     disabled={!chatInput.trim()}
-                                    className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    className="px-6 py-2.5 text-white rounded-xl font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
+                                    style={{
+                                        background: chatInput.trim() ? 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)' : 'rgba(59, 130, 246, 0.5)',
+                                    }}
                                 >
                                     <FiSend size={16} /> Gửi
                                 </button>
@@ -838,6 +1030,22 @@ export default function WaiterBoardPage() {
                     </div>
                 </div>
             )}
+
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: rgba(201, 96, 72, 0.3);
+                    border-radius: 3px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: rgba(201, 96, 72, 0.5);
+                }
+            `}</style>
         </div>
     );
 }

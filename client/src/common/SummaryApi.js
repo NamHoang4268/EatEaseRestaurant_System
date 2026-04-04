@@ -357,6 +357,7 @@ const SummaryApi = {
         url: '/api/booking/create-payment-session',
         method: 'post'
     },
+    
     // Kitchen Workflow
     get_kitchen_active: {
         url: '/api/kitchen/active',
@@ -448,6 +449,30 @@ const SummaryApi = {
     verify_stripe_session: {
         url: '/api/table-order/verify-stripe-session',
         method: 'get'
+    },
+
+    // User Orders
+    get_user_orders: {
+        url: '/api/order/user-orders',
+        method: 'get'
+    },
+
+    // User Addresses
+    get_user_addresses: {
+        url: '/api/address/user-addresses',
+        method: 'get'
+    },
+    create_address: {
+        url: '/api/address/create',
+        method: 'post'
+    },
+    update_address: {
+        url: '/api/address/update/:id',
+        method: 'put'
+    },
+    delete_address: {
+        url: '/api/address/delete/:id',
+        method: 'delete'
     }
 }
 

@@ -39,9 +39,9 @@ export const routePermissions = {
 export function getRoleHomePath(role) {
     switch (role) {
         case 'ADMIN':   return '/dashboard';
-        case 'CHEF':    return '/chef-board';
-        case 'WAITER':  return '/waiter-board';
-        case 'CASHIER': return '/cashier-board';
+        case 'CHEF':    return '/dashboard/chef-board';
+        case 'WAITER':  return '/dashboard/waiter-board';
+        case 'CASHIER': return '/dashboard/cashier-board';
         default:        return '/'; // USER, TABLE, guest
     }
 }
