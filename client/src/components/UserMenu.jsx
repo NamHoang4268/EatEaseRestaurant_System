@@ -186,14 +186,15 @@ const UserMenu = ({ close }) => {
                 style={
                     active
                         ? {
-                            background: 'rgba(201, 96, 72, 0.15)',
-                            color: '#C96048',
-                        }
+                              background: 'rgba(201, 96, 72, 0.15)',
+                              color: '#C96048',
+                          }
                         : {}
                 }
                 onMouseEnter={(e) => {
                     if (!active) {
-                        e.currentTarget.style.background = 'rgba(var(--card-rgb, 255, 255, 255), 0.5)';
+                        e.currentTarget.style.background =
+                            'rgba(var(--card-rgb, 255, 255, 255), 0.5)';
                     }
                 }}
                 onMouseLeave={(e) => {
@@ -225,11 +226,14 @@ const UserMenu = ({ close }) => {
                     onClick={() => toggleSection(sectionKey)}
                     className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all hover:scale-[1.01] active:scale-[0.99] text-foreground"
                     style={{
-                        background: isExpanded ? 'rgba(201, 96, 72, 0.08)' : 'transparent',
+                        background: isExpanded
+                            ? 'rgba(201, 96, 72, 0.08)'
+                            : 'transparent',
                     }}
                     onMouseEnter={(e) => {
                         if (!isExpanded) {
-                            e.currentTarget.style.background = 'rgba(var(--card-rgb, 255, 255, 255), 0.5)';
+                            e.currentTarget.style.background =
+                                'rgba(var(--card-rgb, 255, 255, 255), 0.5)';
                         }
                     }}
                     onMouseLeave={(e) => {
@@ -270,7 +274,7 @@ const UserMenu = ({ close }) => {
                 <div className="flex items-center gap-3">
                     <Link
                         to={'/dashboard/profile'}
-                        className="relative w-16 hover:opacity-85 transition-opacity"
+                        className="relative w-16 flex-shrink-0 hover:opacity-85 transition-opacity"
                     >
                         <img
                             src={user?.avatar || defaultAvatar}
@@ -284,7 +288,8 @@ const UserMenu = ({ close }) => {
                             <span
                                 className="absolute -bottom-1 text-white text-xs font-medium px-2.5 py-0.5 rounded-full"
                                 style={{
-                                    background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                    background:
+                                        'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                                 }}
                             >
                                 Quản trị
@@ -302,12 +307,19 @@ const UserMenu = ({ close }) => {
                                 disabled={false}
                                 speed={3}
                                 color={theme === 'dark' ? '#e5e5e5' : '#1a1a1a'}
-                                shineColor={theme === 'dark' ? '#ffffff' : '#C96048'}
+                                shineColor={
+                                    theme === 'dark' ? '#ffffff' : '#C96048'
+                                }
                                 spread={90}
                             />
-                            <RiExternalLinkFill className="mb-2 flex-shrink-0" style={{ color: '#C96048' }} />
+                            <RiExternalLinkFill
+                                className="mb-2 flex-shrink-0"
+                                style={{ color: '#C96048' }}
+                            />
                         </Link>
-                        <p className="text-xs truncate text-muted-foreground">{user?.email}</p>
+                        <p className="text-xs truncate text-muted-foreground">
+                            {user?.email}
+                        </p>
                     </div>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
@@ -374,9 +386,7 @@ const UserMenu = ({ close }) => {
                     }
                     icon="🍽️"
                     sectionKey="restaurant"
-                    show={['ADMIN', 'WAITER', 'CASHIER'].includes(
-                        user.role
-                    )}
+                    show={['ADMIN', 'WAITER', 'CASHIER'].includes(user.role)}
                 >
                     {user.role === 'ADMIN' && (
                         <MenuLink to="/dashboard/table">
@@ -439,9 +449,7 @@ const UserMenu = ({ close }) => {
                     title="Nhân viên"
                     icon="💼"
                     sectionKey="employee"
-                    show={['WAITER', 'CHEF', 'CASHIER'].includes(
-                        user.role
-                    )}
+                    show={['WAITER', 'CHEF', 'CASHIER'].includes(user.role)}
                 >
                     <MenuLink to="/dashboard/employee-dashboard">
                         Dashboard Nhân viên
@@ -469,9 +477,7 @@ const UserMenu = ({ close }) => {
                     <MenuLink to="/dashboard/address">
                         Địa chỉ giao hàng
                     </MenuLink>
-                    <MenuLink to="/booking">
-                        Đặt bàn
-                    </MenuLink>
+                    <MenuLink to="/booking">Đặt bàn</MenuLink>
                     <MenuLink to="/dashboard/chat-support-customer">
                         Hỗ trợ khách hàng
                     </MenuLink>
@@ -483,7 +489,8 @@ const UserMenu = ({ close }) => {
                         onClick={handleLogout}
                         className="w-full text-sm text-center px-4 py-3 rounded-xl transition-all duration-300 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] text-white font-medium"
                         style={{
-                            background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                            background:
+                                'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                         }}
                     >
                         Đăng xuất

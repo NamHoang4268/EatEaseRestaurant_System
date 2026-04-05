@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../store/userSlice';
 import Axios from '../utils/Axios';
 import SummaryApi from '../common/SummaryApi';
 import toast from 'react-hot-toast';
@@ -130,6 +131,7 @@ function OnlineBillPreviewModal({ tableOrder, onClose, onConfirm, processing }) 
 
 const TableOrderManagementPage = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const user = useSelector((state) => state.user);
     const [tableOrder, setTableOrder] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -281,6 +283,7 @@ const TableOrderManagementPage = () => {
             await Axios({
                 ...SummaryApi.logoutTable,
             });
+            dispatch(logout());
             toast.success('Đã đăng xuất');
             navigate('/');
         } catch (error) {
