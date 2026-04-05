@@ -12,7 +12,8 @@ import {
     FaInfoCircle,
     FaPhone,
 } from 'react-icons/fa';
-import { AnimatePresence, motion } from "framer-motion";
+// eslint-disable-next-line no-unused-vars
+import { AnimatePresence, motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import UserMenu from '../UserMenu';
 import { useGlobalContext } from '../../provider/GlobalProvider';
@@ -309,7 +310,7 @@ export default function Header() {
                                                             defaultAvatar
                                                         }
                                                         alt={user.name}
-                                                        className="w-8 h-8 rounded-full object-cover"
+                                                        className="w-8 h-8 flex-shrink-0 rounded-full object-cover"
                                                         width={32}
                                                         height={32}
                                                     />
@@ -397,18 +398,22 @@ export default function Header() {
                                         width={32}
                                         height={32}
                                     />
-                                    {user.role === 'ADMIN' && unreadCount > 0 && (
-                                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white border-2 border-background">
-                                            {unreadCount > 9 ? '9+' : unreadCount}
-                                        </span>
-                                    )}
+                                    {user.role === 'ADMIN' &&
+                                        unreadCount > 0 && (
+                                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white border-2 border-background">
+                                                {unreadCount > 9
+                                                    ? '9+'
+                                                    : unreadCount}
+                                            </span>
+                                        )}
                                 </button>
                             ) : (
                                 <button
                                     onClick={redirectToLoginPage}
                                     className="text-xs font-medium px-3 py-1.5 rounded-full text-white hover:shadow-lg transition-all active:scale-95"
                                     style={{
-                                        background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                        background:
+                                            'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                                     }}
                                 >
                                     Đăng nhập
@@ -437,7 +442,8 @@ export default function Header() {
                                     side="right"
                                     className="p-0 w-72 flex flex-col border-border fixed"
                                     style={{
-                                        background: 'rgba(var(--card-rgb, 255, 255, 255), 0.95)',
+                                        background:
+                                            'rgba(var(--card-rgb, 255, 255, 255), 0.95)',
                                         backdropFilter: 'blur(20px)',
                                     }}
                                     onOpenAutoFocus={(e) => e.preventDefault()}
@@ -448,7 +454,10 @@ export default function Header() {
                                             <div className="flex items-center gap-3">
                                                 <div className="relative p-0.5 overflow-hidden rounded-full liquid-glass">
                                                     <img
-                                                        src={user.avatar || defaultAvatar}
+                                                        src={
+                                                            user.avatar ||
+                                                            defaultAvatar
+                                                        }
                                                         alt={user.name}
                                                         className="w-12 h-12 rounded-full object-cover"
                                                         width={48}
@@ -460,10 +469,14 @@ export default function Header() {
                                                         {user.name}
                                                     </p>
                                                     {user.role === 'ADMIN' && (
-                                                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ 
-                                                            color: '#C96048',
-                                                            background: 'rgba(201, 96, 72, 0.1)',
-                                                        }}>
+                                                        <span
+                                                            className="text-xs px-2 py-0.5 rounded-full"
+                                                            style={{
+                                                                color: '#C96048',
+                                                                background:
+                                                                    'rgba(201, 96, 72, 0.1)',
+                                                            }}
+                                                        >
                                                             Quản trị viên
                                                         </span>
                                                     )}
@@ -533,8 +546,9 @@ export default function Header() {
                                                     style={
                                                         isActiveLink(l.href)
                                                             ? {
-                                                                background: 'rgba(201, 96, 72, 0.08)',
-                                                            }
+                                                                  background:
+                                                                      'rgba(201, 96, 72, 0.08)',
+                                                              }
                                                             : {}
                                                     }
                                                 >
@@ -618,8 +632,10 @@ export default function Header() {
                                                     }}
                                                     className="w-full text-white font-medium rounded-lg px-6 py-2.5 hover:shadow-lg hover:scale-[1.02] transition-all active:scale-95"
                                                     style={{
-                                                        background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
-                                                        boxShadow: '0 4px 12px rgba(201, 96, 72, 0.3)',
+                                                        background:
+                                                            'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                                        boxShadow:
+                                                            '0 4px 12px rgba(201, 96, 72, 0.3)',
                                                     }}
                                                 >
                                                     Đăng nhập

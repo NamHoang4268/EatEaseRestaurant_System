@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../store/userSlice';
 import { io } from 'socket.io-client';
 import Axios from '../utils/Axios';
 import SummaryApi from '../common/SummaryApi';
@@ -44,6 +45,7 @@ const KITCHEN_STATUS = {
 
 const TableMenuPage = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const user = useSelector((state) => state.user);
     const socketRef = useRef(null);
 
@@ -318,6 +320,7 @@ const TableMenuPage = () => {
     const handleLogout = async () => {
         try {
             await Axios({ ...SummaryApi.logoutTable });
+            dispatch(logout());
             toast.success('Đã đăng xuất');
             navigate('/');
         } catch (error) {
