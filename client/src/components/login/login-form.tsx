@@ -17,6 +17,7 @@ import { setUserDetails } from '@/store/userSlice';
 import AxiosToastError from '@/utils/AxiosToastError';
 import Loading from '../Loading';
 import { useGoogleLogin } from '@react-oauth/google';
+import FacebookLogin from '@greatsumini/react-facebook-login';
 import { FaGoogle } from 'react-icons/fa';
 import { getRoleHomePath } from '@/utils/routePermissions';
 
@@ -33,6 +34,7 @@ export function LoginForm({
     const dispatch = useDispatch();
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
+    const [facebookLoading, setFacebookLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     const handleChange = (e) => {
@@ -186,7 +188,7 @@ export function LoginForm({
                         placeholder="m@example.com"
                         onChange={handleChange}
                         value={data.email}
-                        className="h-12 border-muted-foreground border-2 focus:ring-0 shadow-none rounded-lg bg-white/20 focus:border-[#3F3FF3]"
+                        className="h-12 border-border border-2 focus-visible:ring-1 focus-visible:ring-primary shadow-sm rounded-lg bg-background/50 focus:bg-background transition-colors"
                     />
                 </div>
                 <div className="grid gap-2">
@@ -199,7 +201,7 @@ export function LoginForm({
                             placeholder="Nhập mật khẩu"
                             onChange={handleChange}
                             value={data.password}
-                            className="h-12 pr-10 border-muted-foreground border-2 focus:ring-0 shadow-none rounded-lg bg-white/20 focus:border-[#3F3FF3]"
+                            className="h-12 pr-10 border-border border-2 focus-visible:ring-1 focus-visible:ring-primary shadow-sm rounded-lg bg-background/50 focus:bg-background transition-colors"
                         />
                         <Button
                             type="button"
@@ -248,7 +250,7 @@ export function LoginForm({
                 >
                     <Button
                         type="submit"
-                        className="bg-foreground w-full h-12 font-bold"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 w-full h-12 font-bold shadow-md transition-all"
                     >
                         {loading ? <Loading /> : 'Đăng nhập'}
                     </Button>
@@ -261,12 +263,12 @@ export function LoginForm({
                         </span>
                     </div>
 
-                    <div className="text-foreground">
+                    <div className="text-foreground grid grid-cols-2 gap-4">
                         {/* Google — custom button */}
                         <Button
                             type="button"
                             variant="outline"
-                            className="w-full flex items-center justify-center gap-2 h-12 border-muted-foreground border-2 rounded-lg shadow-none cursor-pointer"
+                            className="w-full flex items-center justify-center gap-2 h-12 border-border border-2 rounded-lg shadow-sm cursor-pointer bg-background/50 hover:bg-accent hover:text-accent-foreground transition-colors"
                             onClick={() => {
                                 setGoogleLoading(true);
                                 googleLogin();
@@ -282,6 +284,74 @@ export function LoginForm({
                                 </>
                             )}
                         </Button>
+
+                        {/* Facebook — custom button */}
+                        <FacebookLogin
+                            appId={import.meta.env.VITE_FACEBOOK_APP_ID || ''}
+                            onSuccess={async (response) => {
+                                try {
+                                    setFacebookLoading(true);
+                                    const loginRes = await Axios({
+                                        ...SummaryApi.facebook_login,
+                                        data: { accessToken: response.accessToken },
+                                    });
+
+                                    if (loginRes.data.error) {
+                                        toast.error(loginRes.data.message);
+                                        return;
+                                    }
+
+                                    if (loginRes.data.success) {
+                                        toast.success(loginRes.data.message);
+                                        localStorage.setItem(
+                                            'accesstoken',
+                                            loginRes.data.data.accessToken
+                                        );
+                                        localStorage.setItem(
+                                            'refreshToken',
+                                            loginRes.data.data.refreshToken
+                                        );
+                                        const userDetails = await fetchUserDetails();
+                                        dispatch(setUserDetails(userDetails.data));
+                                        navigate(getRoleHomePath(userDetails.data?.role));
+                                    }
+                                } catch (error) {
+                                    AxiosToastError(error);
+                                } finally {
+                                    setFacebookLoading(false);
+                                }
+                            }}
+                            onFail={(error) => {
+                                console.error('Facebook Login Error', error);
+                                toast.error('Đăng nhập Facebook thất bại.');
+                                setFacebookLoading(false);
+                            }}
+                            render={({ onClick }) => (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full flex items-center justify-center gap-2 h-12 border-border border-2 rounded-lg shadow-sm cursor-pointer bg-background/50 hover:bg-accent hover:text-accent-foreground transition-colors"
+                                    onClick={() => {
+                                        if(!import.meta.env.VITE_FACEBOOK_APP_ID) {
+                                            toast.error("Vui lòng cấu hình VITE_FACEBOOK_APP_ID trong .env");
+                                            return;
+                                        }
+                                        setFacebookLoading(true);
+                                        onClick();
+                                    }}
+                                    disabled={facebookLoading}
+                                >
+                                    {facebookLoading ? (
+                                        <Loading />
+                                    ) : (
+                                        <>
+                                            <FaFacebookSquare className="text-blue-600 text-lg" />
+                                            Facebook
+                                        </>
+                                    )}
+                                </Button>
+                            )}
+                        />
                     </div>
                 </>
             </div>

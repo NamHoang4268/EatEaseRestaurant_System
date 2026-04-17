@@ -3,7 +3,7 @@ import {
     changePassword, forgotPasswordController, loginController,
     logoutController, refreshTokenController, registerUserController, resetPassword,
     updateUserDetails, uploadAvatar, userDetails, userPoints, verifyEmailController,
-    verifyForgotPasswordOtp, verifyPassword, getCustomerAnalytics, googleLoginController
+    verifyForgotPasswordOtp, verifyPassword, getCustomerAnalytics, googleLoginController, facebookLoginController
 } from '../controllers/user.controller.js'
 import auth from '../middleware/auth.js'
 import upload from './../middleware/multer.js';
@@ -14,6 +14,7 @@ userRouter.post('/register', registerUserController)
 userRouter.post('/verify-email', verifyEmailController)
 userRouter.post('/login', loginController)
 userRouter.post('/google-login', googleLoginController)
+userRouter.post('/facebook-login', facebookLoginController)
 userRouter.get('/logout', auth, logoutController)
 userRouter.put('/upload-avatar', auth, upload.single('avatar'), uploadAvatar)
 userRouter.put('/update-user', auth, updateUserDetails)
