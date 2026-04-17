@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import AxiosToastError from '@/utils/AxiosToastError';
 import Loading from '../Loading';
 import { useGoogleLogin } from '@react-oauth/google';
+import FacebookLogin from '@greatsumini/react-facebook-login';
 import { FaGoogle } from 'react-icons/fa';
 
 export function RegisterForm({
@@ -37,6 +38,7 @@ export function RegisterForm({
     const dispatch = useDispatch();
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
+    const [facebookLoading, setFacebookLoading] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -188,7 +190,7 @@ export function RegisterForm({
             <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Tạo Tài Khoản</h1>
                 <p className="text-balance text-sm text-muted-foreground">
-                    Tạo một tài khoản mới để bắt đầu sử dụng TechSpace.
+                    Tạo một tài khoản mới để bắt đầu sử dụng EatEase.
                 </p>
             </div>
             <div className="grid gap-6">
@@ -309,7 +311,7 @@ export function RegisterForm({
                         </span>
                     </div>
 
-                    <div className="text-foreground">
+                    <div className="text-foreground grid grid-cols-2 gap-4">
                         {/* Google — custom button */}
                         <Button
                             type="button"
@@ -330,6 +332,74 @@ export function RegisterForm({
                                 </>
                             )}
                         </Button>
+
+                        {/* Facebook — custom button */}
+                        <FacebookLogin
+                            appId={import.meta.env.VITE_FACEBOOK_APP_ID || ''}
+                            onSuccess={async (response) => {
+                                try {
+                                    setFacebookLoading(true);
+                                    const loginRes = await Axios({
+                                        ...SummaryApi.facebook_login,
+                                        data: { accessToken: response.accessToken },
+                                    });
+
+                                    if (loginRes.data.error) {
+                                        toast.error(loginRes.data.message);
+                                        return;
+                                    }
+
+                                    if (loginRes.data.success) {
+                                        toast.success('Đăng ký và đăng nhập Facebook thành công!');
+                                        localStorage.setItem(
+                                            'accesstoken',
+                                            loginRes.data.data.accessToken
+                                        );
+                                        localStorage.setItem(
+                                            'refreshToken',
+                                            loginRes.data.data.refreshToken
+                                        );
+                                        const userDetails = await fetchUserDetails();
+                                        dispatch(setUserDetails(userDetails.data));
+                                        navigate('/');
+                                    }
+                                } catch (error) {
+                                    AxiosToastError(error);
+                                } finally {
+                                    setFacebookLoading(false);
+                                }
+                            }}
+                            onFail={(error) => {
+                                console.error('Facebook Register Error', error);
+                                toast.error('Đăng ký Facebook thất bại.');
+                                setFacebookLoading(false);
+                            }}
+                            render={({ onClick }) => (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full flex items-center justify-center gap-2 h-12 border-muted-foreground border-2 rounded-lg shadow-none cursor-pointer"
+                                    onClick={() => {
+                                        if(!import.meta.env.VITE_FACEBOOK_APP_ID) {
+                                            toast.error("Vui lòng cấu hình VITE_FACEBOOK_APP_ID trong .env");
+                                            return;
+                                        }
+                                        setFacebookLoading(true);
+                                        onClick();
+                                    }}
+                                    disabled={facebookLoading}
+                                >
+                                    {facebookLoading ? (
+                                        <Loading />
+                                    ) : (
+                                        <>
+                                            <FaFacebookSquare className="text-blue-600 text-lg" />
+                                            Facebook
+                                        </>
+                                    )}
+                                </Button>
+                            )}
+                        />
                     </div>
                 </>
             </div>
