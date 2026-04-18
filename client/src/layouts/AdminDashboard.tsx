@@ -4,7 +4,6 @@ import { SettingsProvider } from '@/contexts/settings-context';
 import { Outlet } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useSelector } from 'react-redux';
 
 import { Sidebar } from '@/components/adminDashboard/sidebar';
 import { TopNav } from '@/components/adminDashboard/top-nav';
