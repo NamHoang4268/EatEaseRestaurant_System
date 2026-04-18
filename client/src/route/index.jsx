@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import App from '../App';
-import Home from '../pages/Home';
+import Home from '@/pages/Home';
 import SearchPage from '../pages/SearchPage';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
@@ -14,6 +14,8 @@ import Profile from '../pages/Profile';
 import CategoryPage from './../pages/CategoryPage';
 import AdminPermission from '../layouts/AdminPermission';
 import TableOrdersPermission from '../layouts/TableOrdersPermission';
+import RoleGuard from '../layouts/RoleGuard';
+
 import ProductListPage from '../pages/ProductListPage';
 import ProductDisplayPage from '../pages/ProductDisplayPage';
 import ProtectedRoute from './ProtectedRoute';
@@ -37,6 +39,11 @@ import SupportChatAdmin from '@/pages/SupportChatAdmin';
 
 import CustomerCheckinPage from '../pages/CustomerCheckinPage';
 import DashboardRouter from '../pages/DashboardRouter';
+import ChefDashboard from '@/pages/ChefDashboard';
+import CashierDashboard from '@/pages/CashierDashboard';
+import UnifiedChatPage from '@/pages/UnifiedChatPage';
+import MyOrdersPage from '../pages/MyOrdersPage';
+import AddressPage from '../pages/AddressPage';
 
 const router = createBrowserRouter([
     {
@@ -84,15 +91,55 @@ const router = createBrowserRouter([
                 ),
             },
 
-            // === KITCHEN & WAITER ===
-
             // === AUTH ===
-            { path: 'login', element: <PublicRoute><Login /></PublicRoute> },
-            { path: 'register', element: <PublicRoute><Register /></PublicRoute> },
-            { path: 'registration-success', element: <PublicRoute><RegistrationSuccess /></PublicRoute> },
-            { path: 'verify-email', element: <PublicRoute><VerifyEmail /></PublicRoute> },
-            { path: 'forgot-password', element: <PublicRoute><ForgotPassword /></PublicRoute> },
-            { path: 'verification-otp', element: <PublicRoute><OtpVerification /></PublicRoute> },
+            {
+                path: 'login',
+                element: (
+                    <PublicRoute>
+                        <Login />
+                    </PublicRoute>
+                ),
+            },
+            {
+                path: 'register',
+                element: (
+                    <PublicRoute>
+                        <Register />
+                    </PublicRoute>
+                ),
+            },
+            {
+                path: 'registration-success',
+                element: (
+                    <PublicRoute>
+                        <RegistrationSuccess />
+                    </PublicRoute>
+                ),
+            },
+            {
+                path: 'verify-email',
+                element: (
+                    <PublicRoute>
+                        <VerifyEmail />
+                    </PublicRoute>
+                ),
+            },
+            {
+                path: 'forgot-password',
+                element: (
+                    <PublicRoute>
+                        <ForgotPassword />
+                    </PublicRoute>
+                ),
+            },
+            {
+                path: 'verification-otp',
+                element: (
+                    <PublicRoute>
+                        <OtpVerification />
+                    </PublicRoute>
+                ),
+            },
             { path: 'reset-password', element: <ResetPassword /> },
             { path: 'user', element: <UserMenuMobile /> },
 
@@ -108,48 +155,127 @@ const router = createBrowserRouter([
                     { index: true, element: <DashboardRouter /> },
                     { path: 'profile', element: <Profile /> },
                     {
+                        path: 'chat-support-customer',
+                        element: <UnifiedChatPage />,
+                    },
+
+                    // === USER PAGES ===
+                    { path: 'my-orders', element: <MyOrdersPage /> },
+                    { path: 'address', element: <AddressPage /> },
+
+                    // === STAFF BOARDS ===
+                    {
+                        path: 'waiter-board',
+                        element: (
+                            <RoleGuard allowedRoles={['WAITER', 'ADMIN']}>
+                                <WaiterBoardPage />
+                            </RoleGuard>
+                        ),
+                    },
+                    {
+                        path: 'chef-board',
+                        element: (
+                            <RoleGuard allowedRoles={['CHEF', 'ADMIN']}>
+                                <ChefDashboard />
+                            </RoleGuard>
+                        ),
+                    },
+                    {
+                        path: 'cashier-board',
+                        element: (
+                            <RoleGuard allowedRoles={['CASHIER', 'ADMIN']}>
+                                <CashierDashboard />
+                            </RoleGuard>
+                        ),
+                    },
+
+                    {
                         path: 'category',
-                        element: <AdminPermission><CategoryPage /></AdminPermission>,
+                        element: (
+                            <AdminPermission>
+                                <CategoryPage />
+                            </AdminPermission>
+                        ),
                     },
                     {
                         path: 'sub-category',
-                        element: <AdminPermission><SubCategoryPage /></AdminPermission>,
+                        element: (
+                            <AdminPermission>
+                                <SubCategoryPage />
+                            </AdminPermission>
+                        ),
                     },
                     {
                         path: 'product',
-                        element: <AdminPermission><ProductManagementPage /></AdminPermission>,
+                        element: (
+                            <AdminPermission>
+                                <ProductManagementPage />
+                            </AdminPermission>
+                        ),
                     },
                     {
                         path: 'table',
-                        element: <AdminPermission><TableManagementPage /></AdminPermission>,
+                        element: (
+                            <AdminPermission>
+                                <TableManagementPage />
+                            </AdminPermission>
+                        ),
                     },
                     {
                         path: 'table-orders',
-                        element: <TableOrdersPermission><TableOrdersPage /></TableOrdersPermission>,
+                        element: (
+                            <TableOrdersPermission>
+                                <TableOrdersPage />
+                            </TableOrdersPermission>
+                        ),
                     },
                     {
                         path: 'booking',
-                        element: <AdminPermission><BookingManagementPage /></AdminPermission>,
+                        element: (
+                            <AdminPermission>
+                                <BookingManagementPage />
+                            </AdminPermission>
+                        ),
                     },
                     {
                         path: 'bill',
-                        element: <AdminPermission><BillPage /></AdminPermission>,
+                        element: (
+                            <AdminPermission>
+                                <BillPage />
+                            </AdminPermission>
+                        ),
                     },
                     {
                         path: 'report',
-                        element: <AdminPermission><ReportPage /></AdminPermission>,
+                        element: (
+                            <AdminPermission>
+                                <ReportPage />
+                            </AdminPermission>
+                        ),
                     },
                     {
                         path: 'voucher',
-                        element: <AdminPermission><VoucherPage /></AdminPermission>,
+                        element: (
+                            <AdminPermission>
+                                <VoucherPage />
+                            </AdminPermission>
+                        ),
                     },
                     {
                         path: 'support-chat',
-                        element: <AdminPermission><SupportChatAdmin /></AdminPermission>,
+                        element: (
+                            <AdminPermission>
+                                <SupportChatAdmin />
+                            </AdminPermission>
+                        ),
                     },
                     {
                         path: '*',
-                        element: <div className="p-4 text-center">Trang không tồn tại trong Dashboard</div>,
+                        element: (
+                            <div className="p-4 text-center">
+                                Trang không tồn tại trong Dashboard
+                            </div>
+                        ),
                     },
                 ],
             },

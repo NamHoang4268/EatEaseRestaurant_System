@@ -23,6 +23,7 @@ export const getKitchenOrders = async (req, res) => {
 export const getActiveKitchenItems = async (req, res) => {
     try {
         const orders = await TableOrderModel.find({
+            status: { $nin: ["cancelled", "Đã hủy", "paid"] },
             "items.kitchenStatus": { $in: ["pending", "cooking"] },
         })
             .populate("tableId", "name tableName tableNumber")
@@ -76,7 +77,12 @@ export const updateItemKitchenStatus = async (req, res) => {
         if (!item) return res.status(404).json({ success: false, message: "Không tìm thấy món." });
 
         item.kitchenStatus = status;
-        if (status === "cooking") item.cookingStartAt = new Date();
+        if (status === "cooking") {
+            item.cookingStartAt = new Date();
+            if (['pending', 'Chờ xử lý', 'Đã phục vụ'].includes(order.paymentStatus)) {
+                order.paymentStatus = 'Đang chuẩn bị';
+            }
+        }
         if (status === "ready") item.readyAt = new Date();
 
         await order.save();
@@ -135,6 +141,12 @@ export const markItemServed = async (req, res) => {
 
         item.kitchenStatus = "served";
         item.servedAt = new Date();
+
+        const allServed = order.items.every(i => i.kitchenStatus === 'served');
+        if (allServed && order.paymentStatus === 'Đang chuẩn bị') {
+            order.paymentStatus = 'Đã phục vụ';
+        }
+
         await order.save();
 
         const io = req.app.get("io");
@@ -161,6 +173,7 @@ export const markItemServed = async (req, res) => {
 export const getReadyToServeItems = async (req, res) => {
     try {
         const orders = await TableOrderModel.find({
+            status: { $nin: ["cancelled", "Đã hủy", "paid"] },
             "items.kitchenStatus": "ready",
         })
             .populate("tableId", "name tableName tableNumber")

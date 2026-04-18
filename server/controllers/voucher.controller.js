@@ -1,10 +1,13 @@
 import VoucherModel from '../models/voucher.model.js';
-import OrderModel from '../models/order.model.js';
+import TableOrderModel from '../models/tableOrder.model.js'; // ✅ model nhà hàng thực sự
 
-// Helper to check if user is first time customer
+// Kiểm tra khách hàng lần đầu (chưa có tableOrder nào đã paid)
 const checkFirstTimeCustomer = async (userId) => {
     if (!userId) return false;
-    const orderCount = await OrderModel.countDocuments({ userId });
+    const orderCount = await TableOrderModel.countDocuments({
+        customerId: userId,
+        paymentStatus: 'paid'
+    });
     return orderCount === 0;
 };
 
@@ -662,18 +665,18 @@ export const getVoucherOverviewController = async (req, res) => {
             endDate: { $gte: currentDate }
         });
 
-        // Total usage and savings from orders
-        const usageStats = await OrderModel.aggregate([
+        // Thống kê usage từ tableOrder (dùng voucherId + discount)
+        const usageStats = await TableOrderModel.aggregate([
             {
                 $match: {
-                    voucherCode: { $ne: null, $exists: true }
+                    voucherId: { $ne: null, $exists: true }
                 }
             },
             {
                 $group: {
                     _id: null,
                     totalUsage: { $sum: 1 },
-                    totalSavings: { $sum: '$voucherDiscount' }
+                    totalSavings: { $sum: '$discount' }  // tableOrder dùng 'discount'
                 }
             }
         ]);
@@ -710,24 +713,24 @@ export const getTopVouchersController = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 5;
 
-        const topVouchers = await OrderModel.aggregate([
+        // Aggregate từ tableOrder, lookup sang voucher collection
+        const topVouchers = await TableOrderModel.aggregate([
             {
                 $match: {
-                    voucherCode: { $ne: null, $exists: true }
+                    voucherId: { $ne: null, $exists: true }
                 }
             },
             {
                 $group: {
-                    _id: '$voucherCode',
+                    _id: '$voucherId',
                     usageCount: { $sum: 1 },
-                    totalSavings: { $sum: '$voucherDiscount' },
-                    voucherId: { $first: '$voucherId' }
+                    totalSavings: { $sum: '$discount' }  // tableOrder dùng 'discount'
                 }
             },
             {
                 $lookup: {
                     from: 'vouchers',
-                    localField: 'voucherId',
+                    localField: '_id',
                     foreignField: '_id',
                     as: 'voucherDetails'
                 }
@@ -740,8 +743,8 @@ export const getTopVouchersController = async (req, res) => {
             },
             {
                 $project: {
-                    code: '$_id',
-                    name: { $ifNull: ['$voucherDetails.name', '$_id'] },
+                    code: { $ifNull: ['$voucherDetails.code', 'N/A'] },
+                    name: { $ifNull: ['$voucherDetails.name', 'Không rõ'] },
                     usageCount: 1,
                     totalSavings: { $round: ['$totalSavings', 0] },
                     discountType: { $ifNull: ['$voucherDetails.discountType', 'unknown'] }
@@ -785,10 +788,11 @@ export const getUsageTrendController = async (req, res) => {
         startDate.setDate(startDate.getDate() - daysAgo);
         startDate.setHours(0, 0, 0, 0);
 
-        const trend = await OrderModel.aggregate([
+        // Aggregate từ tableOrder dùng voucherId và discount
+        const trend = await TableOrderModel.aggregate([
             {
                 $match: {
-                    voucherCode: { $ne: null, $exists: true },
+                    voucherId: { $ne: null, $exists: true },
                     createdAt: { $gte: startDate }
                 }
             },
@@ -798,7 +802,7 @@ export const getUsageTrendController = async (req, res) => {
                         $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
                     },
                     usageCount: { $sum: 1 },
-                    totalSavings: { $sum: '$voucherDiscount' }
+                    totalSavings: { $sum: '$discount' }  // tableOrder dùng 'discount'
                 }
             },
             {

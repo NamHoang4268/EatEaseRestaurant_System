@@ -1,30 +1,6 @@
 import mongoose from "mongoose";
-import OrderModel from "./order.model.js";
-
-// Define points history schema
-const pointsHistorySchema = new mongoose.Schema({
-    orderId: {
-        type: String,
-        required: true
-    },
-    points: {
-        type: Number,
-        required: true
-    },
-    type: {
-        type: String,
-        enum: ['earned', 'redemption', 'expired', 'admin_adjustment'],
-        required: true
-    },
-    description: {
-        type: String,
-        required: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
-});
+// NOTE: Không import OrderModel ở đây để tránh circular dependency.
+// Hook points → rewards được xử lý trong tableOrder.model.js
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -70,16 +46,10 @@ const userSchema = new mongoose.Schema({
         enum: ["Active", "Inactive", "Suspended"],
         default: "Active",
     },
-    shopping_cart: [
-        {
-            type: mongoose.Schema.ObjectId,
-            ref: 'cartProduct'
-        }
-    ],
     orderHistory: [
         {
             type: mongoose.Schema.ObjectId,
-            ref: 'order'
+            ref: 'tableOrder'  // ✅ ref đúng model nhà hàng
         }
     ],
     forgot_password_otp: {
@@ -99,7 +69,7 @@ const userSchema = new mongoose.Schema({
     employeeId: {
         type: String,
         unique: true,
-        sparse: true, // Allow null for non-employees
+        sparse: true,
     },
     hireDate: {
         type: Date,
@@ -118,52 +88,34 @@ const userSchema = new mongoose.Schema({
         ref: 'table',
         default: null
     },
-    performanceStats: {
-        totalWorkingHours: { type: Number, default: 0 },
-        ordersHandled: { type: Number, default: 0 }, // For Waiter
-        dishesCooked: { type: Number, default: 0 },  // For Chef
-        averageRating: { type: Number, default: 0, min: 0, max: 5 },
-    },
+    // Loyalty / Rewards
     rewardsPoint: {
         type: Number,
         default: 0,
         min: 0,
     },
-    pointsHistory: [pointsHistorySchema],
+    tierLevel: {
+        type: String,
+        enum: ['bronze', 'silver', 'gold', 'platinum'],
+        default: 'bronze',
+    },
+    tierBenefits: {
+        pointsMultiplier: {
+            type: Number,
+            default: 1.0,
+            min: 1.0,
+        },
+    },
 }, {
     timestamps: true
 })
 
-// Add a post-save hook to the Order model to update user's rewards points
-OrderModel.schema.post('save', async function (doc) {
-    try {
-        // Only process if the order has earnedPoints and is a new or updated document
-        if (doc.earnedPoints && doc.earnedPoints > 0) {
-            // Find the user and update their rewards points
-            await mongoose.model('user').findByIdAndUpdate(
-                doc.userId,
-                {
-                    $inc: { rewardsPoint: doc.earnedPoints },
-                    $push: {
-                        orderHistory: doc._id,
-                        pointsHistory: {
-                            orderId: doc.orderId,
-                            points: doc.earnedPoints,
-                            type: 'earned',
-                            description: `Tích điểm từ đơn hàng ${doc.orderId}`,
-                            createdAt: new Date()
-                        }
-                    }
-                },
-                { new: true, useFindAndModify: false }
-            );
+// NOTE: Hook tích điểm từ đơn hàng đã được chuyển vào tableOrder.model.js
+// để tránh circular dependency và đảm bảo single responsibility.
 
-            console.log(`Added ${doc.earnedPoints} points to user ${doc.userId} for order ${doc._id}`);
-        }
-    } catch (error) {
-        console.error('Error updating user points from order:', error);
-    }
-});
+userSchema.index({ tierLevel: 1 });
+userSchema.index({ rewardsPoint: -1 });
+userSchema.index({ email: 1 });
 
 const UserModel = mongoose.model("user", userSchema)
 

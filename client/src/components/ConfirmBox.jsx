@@ -11,8 +11,8 @@ const ConfirmBox = ({
     close,
     title,
     message,
-    confirmText,
-    cancelText,
+    confirmText = "Xác nhận",
+    cancelText = "Hủy bỏ",
 }) => {
     const [confirmLoading, setConfirmLoading] = useState(false);
     const [cancelLoading, setCancelLoading] = useState(false);
@@ -82,7 +82,11 @@ const ConfirmBox = ({
                                     onClick={async () => {
                                         setCancelLoading(true);
                                         try {
-                                            await Promise.resolve(cancel());
+                                            if (cancel) {
+                                                await Promise.resolve(cancel());
+                                            } else if (close) {
+                                                close();
+                                            }
                                         } finally {
                                             setCancelLoading(false);
                                         }

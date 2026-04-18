@@ -38,21 +38,21 @@ const Search = () => {
         <search className="relative z-10 cursor-pointer liquid-glass max-w-2xl container mx-auto rounded-3xl">
             <div
                 className="md:px-8 px-2 sm:my-0 h-8 sm:h-12 rounded-3xl border-[3px] border-inset overflow-hidden
-                flex items-center text-sm text-red-600 dark:text-red-50 liquid-glass group focus-within:border-purple-400"
+                flex items-center text-sm text-foreground liquid-glass group focus-within:border-[#C96048]"
             >
                 <div>
                     {isMobile && isSearchPage ? (
                         <Link
                             to={'/'}
-                            className="flex justify-center items-center h-full p-1 m-2 group-focus-within:text-purple-400
-                        shadow-sm shadow-purple-400 group-focus-within:shadow-purple-400 rounded-full"
+                            className="flex justify-center items-center h-full p-1 m-2 group-focus-within:text-[#C96048]
+                        shadow-sm shadow-[#C96048]/30 group-focus-within:shadow-[#C96048]/30 rounded-full"
                         >
                             <GiReturnArrow size={14} />
                         </Link>
                     ) : (
                         <button
                             className="flex justify-center items-center h-full p-4
-                    group-focus-within:text-purple-400 font-bold mb-[2px]"
+                    group-focus-within:text-[#C96048] font-bold mb-[2px]"
                         >
                             <IoSearch size={18} />
                         </button>
@@ -90,14 +90,14 @@ const Search = () => {
                                 type="text"
                                 placeholder="Bạn muốn mua gì hôm nay?"
                                 autoFocus={true}
-                                className="w-full h-full bg-transparent outline-none"
+                                className="w-full h-full bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
                                 defaultValue={searchText}
                                 onChange={handleOnChange}
                                 spellCheck={false}
                             />
                             {isTyping && (
                                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#C96048]"></div>
                                 </div>
                             )}
                         </div>

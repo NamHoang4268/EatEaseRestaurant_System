@@ -69,37 +69,31 @@ const navigationSections: NavigationSection[] = [
         key: 'restaurant',
         title: 'Quản lý Nhà hàng',
         icon: '🍽️',
-        roles: ['ADMIN', 'MANAGER', 'WAITER', 'CASHIER'],
+        roles: ['ADMIN', 'WAITER', 'CASHIER'],
         items: [
             {
                 name: 'Bàn ăn',
                 href: '/dashboard/table',
                 icon: Utensils,
-                roles: ['ADMIN', 'MANAGER'],
+                roles: ['ADMIN'],
             },
             {
                 name: 'Đơn gọi món',
                 href: '/dashboard/table-orders',
                 icon: FileText,
-                roles: ['MANAGER', 'WAITER'],
+                roles: ['WAITER'],
             },
             {
                 name: 'Đặt bàn',
                 href: '/dashboard/booking',
                 icon: Calendar,
-                roles: ['ADMIN', 'MANAGER', 'WAITER'],
+                roles: ['ADMIN', 'WAITER'],
             },
             {
-                name: 'Hóa đơn',
+                name: 'Báo cáo & Thống kê',
                 href: '/dashboard/bill',
-                icon: FileText,
-                roles: ['ADMIN', 'MANAGER', 'WAITER', 'CASHIER'],
-            },
-            {
-                name: 'Báo cáo',
-                href: '/dashboard/report',
                 icon: BarChart2,
-                roles: ['ADMIN', 'MANAGER'],
+                roles: ['ADMIN', 'WAITER', 'CASHIER'],
             },
         ],
     },
@@ -107,7 +101,7 @@ const navigationSections: NavigationSection[] = [
         key: 'hr',
         title: 'Quản lý Nhân sự',
         icon: '👥',
-        roles: ['ADMIN', 'MANAGER'],
+        roles: ['ADMIN'],
         items: [
             {
                 name: 'Nhân viên',
@@ -143,7 +137,7 @@ const navigationSections: NavigationSection[] = [
         key: 'employee',
         title: 'Nhân viên',
         icon: '💼',
-        roles: ['MANAGER', 'WAITER', 'CHEF', 'CASHIER', 'ADMIN'],
+        roles: ['WAITER', 'CHEF', 'CASHIER', 'ADMIN'],
         items: [
             {
                 name: 'Dashboard',
@@ -182,7 +176,7 @@ const bottomNavigation = [
         name: 'Hỗ trợ khách hàng',
         href: '/dashboard/support-chat',
         icon: MessageSquare,
-        roles: ['ADMIN', 'MANAGER', 'WAITER', 'CASHIER'],
+        roles: ['ADMIN', 'WAITER', 'CASHIER'],
     },
 ];
 export function Sidebar() {
@@ -458,9 +452,15 @@ export function Sidebar() {
                     </div>
                     <div className="border-t border-border p-2">
                         <nav className="space-y-1">
-                            {bottomNavigation.map((item) => (
-                                <NavItem key={item.name} item={item} isBottom />
-                            ))}
+                            {bottomNavigation
+                                .filter(
+                                    (item) =>
+                                        !item.roles ||
+                                        item.roles.includes(user.role)
+                                )
+                                .map((item) => (
+                                    <NavItem key={item.name} item={item} isBottom />
+                                ))}
                         </nav>
                     </div>
                 </div>

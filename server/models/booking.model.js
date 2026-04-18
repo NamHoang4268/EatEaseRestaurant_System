@@ -44,27 +44,6 @@ const bookingSchema = new mongoose.Schema({
         default: "",
         trim: true
     },
-    // Deposit fields
-    depositAmount: {
-        type: Number,
-        default: 0
-    },
-    depositPaid: {
-        type: Boolean,
-        default: false
-    },
-    paymentIntentId: {
-        type: String,
-        default: ""
-    },
-    refundId: {
-        type: String,
-        default: ""
-    },
-    depositRefunded: {
-        type: Boolean,
-        default: false
-    },
     cancelledBy: {
         type: String,
         enum: ['customer', 'admin', 'system'],
@@ -84,10 +63,10 @@ const bookingSchema = new mongoose.Schema({
         enum: ['customer', 'admin'],
         default: 'customer'
     },
-    // Pre-order integration fields
+    // Pre-order tích hợp: nếu khách đặt món trước khi đến
     preOrderId: {
         type: mongoose.Schema.ObjectId,
-        ref: 'order',
+        ref: 'tableOrder',  // ✅ model chính của nhà hàng
         default: null
     },
     hasPreOrder: {
@@ -102,10 +81,11 @@ const bookingSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Indexes for better query performance
+// Indexes
 bookingSchema.index({ bookingDate: 1, bookingTime: 1 });
 bookingSchema.index({ tableId: 1 });
 bookingSchema.index({ status: 1 });
+bookingSchema.index({ userId: 1 });   // thêm index cho user query
 bookingSchema.index({ phone: 1 });
 bookingSchema.index({ email: 1 });
 

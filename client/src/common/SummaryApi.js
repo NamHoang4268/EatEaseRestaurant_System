@@ -233,6 +233,10 @@ const SummaryApi = {
     },
 
     // Support Chat (Admin REST)
+    get_my_support_conversation: {
+        url: '/api/support/my-conversation',
+        method: 'get'
+    },
     get_support_conversations: {
         url: '/api/support/conversations',
         method: 'get'
@@ -357,6 +361,7 @@ const SummaryApi = {
         url: '/api/booking/create-payment-session',
         method: 'post'
     },
+    
     // Kitchen Workflow
     get_kitchen_active: {
         url: '/api/kitchen/active',
@@ -412,6 +417,66 @@ const SummaryApi = {
     voucher_analytics_trend: {
         url: '/api/voucher/analytics/usage-trend',
         method: 'get'
+    },
+
+    // Cashier payment APIs
+    get_cashier_pending_orders: {
+        url: '/api/table-order/cashier-pending',
+        method: 'get'
+    },
+    cashier_confirm_payment: {
+        url: '/api/table-order/cashier-confirm',
+        method: 'post'
+    },
+
+    // Service Requests (Gọi phục vụ)
+    call_waiter: {
+        url: '/api/service-request/call',
+        method: 'post'
+    },
+    get_pending_service_requests: {
+        url: '/api/service-request/pending',
+        method: 'get'
+    },
+    handle_service_request: {
+        url: '/api/service-request/:id/handle',
+        method: 'patch'
+    },
+
+    // Waiter cancel item
+    cancel_table_order_item: {
+        url: '/api/table-order/item/:orderId/:itemId',
+        method: 'delete'
+    },
+
+    // US26 – Stripe online payment verify
+    verify_stripe_session: {
+        url: '/api/table-order/verify-stripe-session',
+        method: 'get'
+    },
+
+    // User Orders
+    get_user_orders: {
+        url: '/api/order/user-orders',
+        method: 'get'
+    },
+
+    // User Addresses
+    get_user_addresses: {
+        url: '/api/address/user-addresses',
+        method: 'get'
+    },
+    create_address: {
+        url: '/api/address/create',
+        method: 'post'
+    },
+    update_address: {
+        url: '/api/address/update/:id',
+        method: 'put'
+    },
+    delete_address: {
+        url: '/api/address/delete/:id',
+        method: 'delete'
     }
 }
 

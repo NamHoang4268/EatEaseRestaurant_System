@@ -1,4 +1,8 @@
-import OrderModel from '../models/order.model.js';
+/**
+ * order.controller.js — đã được migrate sang TableOrderModel
+ * Route /api/order/all-orders giữ lại để tương thích với các UI cũ.
+ */
+import TableOrderModel from '../models/tableOrder.model.js';
 import UserModel from '../models/user.model.js';
 
 export async function getAllOrders(request, response) {
@@ -6,7 +10,7 @@ export async function getAllOrders(request, response) {
         const userId = request.userId;
         const user = await UserModel.findById(userId);
 
-        if (!user || !['ADMIN', 'MANAGER', 'WAITER', 'CASHIER'].includes(user.role)) {
+        if (!user || !['ADMIN', 'WAITER', 'CASHIER'].includes(user.role)) {
             return response.status(403).json({
                 message: 'Bạn không có quyền truy cập',
                 error: true,
@@ -18,15 +22,27 @@ export async function getAllOrders(request, response) {
 
         let query = {};
 
+        // tableOrder dùng paymentStatus thay vì payment_status
         if (status) {
-            query.payment_status = status;
+            if (status === 'Đã thanh toán') {
+                query.paymentStatus = { $in: ['paid', 'Đã thanh toán'] };
+            } else if (status === 'Chờ xử lý') {
+                query.paymentStatus = { $in: ['pending', 'Chờ xử lý'] };
+            } else if (status === 'Đã hoàn tiền') {
+                query.paymentStatus = { $in: ['refunded', 'Đã hoàn tiền'] };
+            } else if (status === 'Đã hủy') {
+                query.$or = [
+                    { paymentStatus: { $in: ['cancelled', 'Đã hủy'] } },
+                    { status: 'cancelled' }
+                ];
+            } else {
+                query.paymentStatus = status;
+            }
         }
 
         if (startDate || endDate) {
             query.createdAt = {};
-            if (startDate) {
-                query.createdAt.$gte = new Date(startDate);
-            }
+            if (startDate) query.createdAt.$gte = new Date(startDate);
             if (endDate) {
                 const end = new Date(endDate);
                 end.setHours(23, 59, 59, 999);
@@ -34,8 +50,9 @@ export async function getAllOrders(request, response) {
             }
         }
 
-        const orders = await OrderModel.find(query)
-            .populate('userId', 'name email mobile')
+        const orders = await TableOrderModel.find(query)
+            .populate({ path: 'customerId', select: 'name phone' })
+            .populate({ path: 'voucherId', select: 'code name discountType discountValue' })
             .sort({ createdAt: -1 });
 
         return response.status(200).json({
@@ -63,7 +80,7 @@ export async function updateOrderStatus(request, response) {
 
         const user = await UserModel.findById(userId);
 
-        if (!user || !['ADMIN', 'MANAGER', 'WAITER', 'CASHIER'].includes(user.role)) {
+        if (!user || !['ADMIN', 'WAITER', 'CASHIER'].includes(user.role)) {
             return response.status(403).json({
                 message: 'Bạn không có quyền cập nhật trạng thái đơn hàng',
                 error: true,
@@ -71,7 +88,7 @@ export async function updateOrderStatus(request, response) {
             });
         }
 
-        const order = await OrderModel.findById(orderId);
+        const order = await TableOrderModel.findById(orderId);
 
         if (!order) {
             return response.status(404).json({
@@ -81,16 +98,16 @@ export async function updateOrderStatus(request, response) {
             });
         }
 
-        order.payment_status = status;
-        
-        if (status === 'Đã thanh toán' || status === 'paid') {
-            order.isPaid = true;
+        // Map các trạng thái cũ → thường dùng trong tableOrder
+        if (status === 'paid' || status === 'Đã thanh toán') {
+            order.paymentStatus = 'paid';
             order.paidAt = new Date();
-        }
-
-        if (status === 'Đã hủy' || status === 'cancelled') {
-            order.cancelReason = cancelReason || '';
-            order.cancelledAt = new Date();
+            order.status = 'paid';
+        } else if (status === 'cancelled' || status === 'Đã hủy') {
+            order.status = 'cancelled';
+            order.paymentStatus = 'Đã hủy';
+        } else {
+            order.paymentStatus = status;
         }
 
         await order.save();

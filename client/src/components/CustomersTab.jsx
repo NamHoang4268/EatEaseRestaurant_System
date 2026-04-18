@@ -195,7 +195,7 @@ const CustomersTab = () => {
                             <FaUsers className="h-6 w-6" />
                         </div>
                         <div className="mt-1 space-y-1">
-                            <p className="text-xs font-bold">Tổng khách hàng</p>
+                            <p className="text-xs font-bold">Khách thành viên</p>
                             <p className="text-xl font-bold">
                                 {customerData.summary.totalCustomers}
                             </p>
@@ -233,9 +233,9 @@ const CustomersTab = () => {
                             <FaUsers className="h-6 w-6" />
                         </div>
                         <div className="mt-1 space-y-1">
-                            <p className="text-xs font-bold">Đơn TB/Khách</p>
+                            <p className="text-xs font-bold">Lượt khách vãng lai</p>
                             <p className="text-xl font-bold">
-                                {customerData.summary.avgOrdersPerCustomer}
+                                {customerData.summary.anonymousVisits ?? '—'}
                             </p>
                         </div>
                     </div>
@@ -367,7 +367,7 @@ const CustomersTab = () => {
                                         {customerData.topByOrders.map(
                                             (customer, index) => (
                                                 <tr
-                                                    key={customer.userId}
+                                                    key={customer.customerId?.toString() ?? `anon-${index}`}
                                                     className="border-b border-gray-700"
                                                 >
                                                     <td className="py-2">
@@ -379,7 +379,11 @@ const CustomersTab = () => {
                                                                 {customer.name}
                                                             </p>
                                                             <p className="text-xs text-foreground/80">
-                                                                {customer.email}
+                                                                {customer.phone
+                                                                    ? customer.phone
+                                                                    : customer.isRegistered
+                                                                    ? 'Thành viên'
+                                                                    : 'Khách vãng lai'}
                                                             </p>
                                                         </div>
                                                     </td>
@@ -418,7 +422,7 @@ const CustomersTab = () => {
                                         {customerData.topByRevenue.map(
                                             (customer, index) => (
                                                 <tr
-                                                    key={customer.userId}
+                                                    key={customer.customerId?.toString() ?? `anon-rev-${index}`}
                                                     className="border-b border-gray-700"
                                                 >
                                                     <td className="py-2">
@@ -430,7 +434,11 @@ const CustomersTab = () => {
                                                                 {customer.name}
                                                             </p>
                                                             <p className="text-xs text-foreground/80">
-                                                                {customer.email}
+                                                                {customer.phone
+                                                                    ? customer.phone
+                                                                    : customer.isRegistered
+                                                                    ? 'Thành viên'
+                                                                    : 'Khách vãng lai'}
                                                             </p>
                                                         </div>
                                                     </td>

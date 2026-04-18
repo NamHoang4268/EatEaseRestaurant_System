@@ -9,7 +9,7 @@ import generatedOtp from '../utils/generatedOtp.js';
 import forgotPasswordTemplate from '../utils/forgotPasswordTemplate.js';
 import welcomeEmailTemplate from '../utils/welcomeEmailTemplate.js';
 import jwt from 'jsonwebtoken'
-import OrderModel from '../models/order.model.js'
+import TableOrderModel from '../models/tableOrder.model.js' // ✅ dùng model nhà hàng thực sự
 import { OAuth2Client } from 'google-auth-library'
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -708,6 +708,11 @@ export async function googleLoginController(req, res) {
                 }
                 user.googleId = googleId;
                 if (!user.avatar) user.avatar = picture || "";
+                // Migrate role cũ (GUEST, USER...) không còn hợp lệ → CUSTOMER
+                const validRoles = ["ADMIN", "WAITER", "CHEF", "CASHIER", "CUSTOMER", "TABLE"];
+                if (!validRoles.includes(user.role)) {
+                    user.role = "CUSTOMER";
+                }
                 await user.save();
             } else {
                 // User mới — tự động đăng ký
@@ -778,80 +783,115 @@ export async function googleLoginController(req, res) {
 }
 
 // Get customer analytics for reports
-
 export async function getCustomerAnalytics(req, res) {
     try {
         const { startDate, endDate } = req.query;
 
-        // Build query for orders
-        const orderQuery = {};
-        if (startDate) {
-            orderQuery.createdAt = { $gte: new Date(startDate) };
-        }
-        if (endDate) {
-            orderQuery.createdAt = {
-                ...orderQuery.createdAt,
-                $lte: new Date(endDate)
-            };
+        // Build query cho tableOrder (model nhà hàng thực sự)
+        const orderQuery = { paymentStatus: 'paid' }; // chỉ tính đơn đã thanh toán
+        if (startDate || endDate) {
+            orderQuery.createdAt = {};
+            if (startDate) orderQuery.createdAt.$gte = new Date(startDate);
+            if (endDate)   orderQuery.createdAt.$lte = new Date(endDate);
         }
 
-        // Get all orders with user info
-        const orders = await OrderModel.find(orderQuery)
-            .populate('userId', 'name email createdAt')
+        // TableOrder dùng 'customerId' (guest) hoặc user đăng nhập qua table QR
+        const orders = await TableOrderModel.find(orderQuery)
+            .populate({ path: 'customerId', select: 'name phone createdAt' })
             .sort({ createdAt: -1 });
 
-        // Calculate customer metrics
+        // Tính metrics theo đơn hàng
+        // - Loyalty customer (có customerId): gộp các đơn cùng 1 khách
+        // - Anonymous (không có customerId): mỗi đơn = 1 lượt ghé thăm riêng biệt
         const customerStats = {};
 
         orders.forEach(order => {
-            if (!order.userId) return;
+            if (order.customerId) {
+                // ── Khách đã đăng ký loyalty (check-in QR) ──────────────────
+                const custKey = order.customerId._id.toString();
 
-            const userId = order.userId._id.toString();
+                // Customer.name có default "" nên cần .trim() để check
+                const custName = order.customerId.name?.trim();
+                const custPhone = order.customerId.phone?.trim();
+                const displayName =
+                    custName ||
+                    (custPhone ? `Khách ${custPhone}` : 'Khách vãng lai');
 
-            if (!customerStats[userId]) {
-                customerStats[userId] = {
-                    userId: order.userId._id,
-                    name: order.userId.name,
-                    email: order.userId.email,
-                    orderCount: 0,
-                    totalRevenue: 0,
-                    joinedDate: order.userId.createdAt
+                if (!customerStats[custKey]) {
+                    customerStats[custKey] = {
+                        customerId: order.customerId._id,
+                        name: displayName,
+                        phone: custPhone || null,
+                        isRegistered: true,
+                        orderCount: 0,
+                        totalRevenue: 0,
+                        joinedDate: order.customerId.createdAt || order.createdAt,
+                    };
+                }
+                // Cập nhật tên nếu trước đó chưa có
+                if (!customerStats[custKey].name || customerStats[custKey].name === 'Khách vãng lai') {
+                    customerStats[custKey].name = displayName;
+                }
+                customerStats[custKey].orderCount += 1;
+                customerStats[custKey].totalRevenue += order.total || 0;
+            } else {
+                // ── Khách vãng lai (mỗi đơn = 1 lượt) ─────────────────────
+                // Dùng orderId làm key để mỗi lần ghé thăm được đếm riêng
+                const anonKey = `anon_${order._id.toString()}`;
+                const tableLabel = order.tableNumber
+                    ? `Bàn ${order.tableNumber}`
+                    : 'Mang đi/Khác';
+
+                customerStats[anonKey] = {
+                    customerId: null,
+                    name: `${tableLabel} – Khách vãng lai`,
+                    phone: null,
+                    isRegistered: false,
+                    orderCount: 1,
+                    totalRevenue: order.total || 0,
+                    joinedDate: order.createdAt,
                 };
             }
-
-            customerStats[userId].orderCount += 1;
-            customerStats[userId].totalRevenue += order.totalAmt || 0;
         });
 
-        // Convert to array and sort
+        // Convert sang array và tách 2 nhóm
         const customersArray = Object.values(customerStats);
+        const registeredCustomers = customersArray.filter(c => c.isRegistered);
+        const anonymousVisits    = customersArray.filter(c => !c.isRegistered);
 
-        // Top customers by order count
+        // Top 10 theo số đơn:
+        //   - Ưu tiên khách loyalty (có thể có nhiều đơn)
+        //   - Nếu không có loyalty customer, hiện anonymous theo doanh thu
         const topByOrders = [...customersArray]
-            .sort((a, b) => b.orderCount - a.orderCount)
+            .sort((a, b) => {
+                // Loyalty customers lên trước nếu cùng orderCount
+                if (b.orderCount !== a.orderCount) return b.orderCount - a.orderCount;
+                return (b.isRegistered ? 1 : 0) - (a.isRegistered ? 1 : 0);
+            })
             .slice(0, 10);
 
-        // Top customers by revenue
+        // Top 10 theo doanh thu (tất cả customers, sort by revenue desc)
         const topByRevenue = [...customersArray]
             .sort((a, b) => b.totalRevenue - a.totalRevenue)
             .slice(0, 10);
 
-        // New vs returning customers
+        // Khách mới (30 ngày gần nhất) – chỉ tính loyalty customers
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const newCustomers = customersArray.filter(c =>
+        const newCustomers = registeredCustomers.filter(c =>
             new Date(c.joinedDate) >= thirtyDaysAgo
         ).length;
 
-        const returningCustomers = customersArray.filter(c =>
+        // Khách quay lại = loyalty customers có >1 đơn
+        const returningCustomers = registeredCustomers.filter(c =>
             c.orderCount > 1
         ).length;
 
-        // Customer growth by month
+        // Tăng trưởng khách hàng (loyalty) theo tháng
         const customerGrowth = {};
-        customersArray.forEach(customer => {
-            const month = new Date(customer.joinedDate).toISOString().slice(0, 7); // YYYY-MM
+        registeredCustomers.forEach(customer => {
+            const month = new Date(customer.joinedDate).toISOString().slice(0, 7);
             customerGrowth[month] = (customerGrowth[month] || 0) + 1;
         });
 
@@ -859,11 +899,12 @@ export async function getCustomerAnalytics(req, res) {
             message: "Lấy phân tích khách hàng thành công",
             data: {
                 summary: {
-                    totalCustomers: customersArray.length,
+                    totalCustomers: registeredCustomers.length,   // loyalty customers
+                    anonymousVisits: anonymousVisits.length,       // lượt khách vãng lai
                     newCustomers,
                     returningCustomers,
-                    avgOrdersPerCustomer: customersArray.length > 0
-                        ? (orders.length / customersArray.length).toFixed(2)
+                    avgOrdersPerCustomer: registeredCustomers.length > 0
+                        ? (registeredCustomers.reduce((s, c) => s + c.orderCount, 0) / registeredCustomers.length).toFixed(2)
                         : 0
                 },
                 topByOrders,
