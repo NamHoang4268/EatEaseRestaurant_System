@@ -293,7 +293,9 @@ export function LoginForm({
                                     setFacebookLoading(true);
                                     const loginRes = await Axios({
                                         ...SummaryApi.facebook_login,
-                                        data: { accessToken: response.accessToken },
+                                        data: {
+                                            accessToken: response.accessToken,
+                                        },
                                     });
 
                                     if (loginRes.data.error) {
@@ -311,9 +313,16 @@ export function LoginForm({
                                             'refreshToken',
                                             loginRes.data.data.refreshToken
                                         );
-                                        const userDetails = await fetchUserDetails();
-                                        dispatch(setUserDetails(userDetails.data));
-                                        navigate(getRoleHomePath(userDetails.data?.role));
+                                        const userDetails =
+                                            await fetchUserDetails();
+                                        dispatch(
+                                            setUserDetails(userDetails.data)
+                                        );
+                                        navigate(
+                                            getRoleHomePath(
+                                                userDetails.data?.role
+                                            )
+                                        );
                                     }
                                 } catch (error) {
                                     AxiosToastError(error);
@@ -332,8 +341,13 @@ export function LoginForm({
                                     variant="outline"
                                     className="w-full flex items-center justify-center gap-2 h-12 border-border border-2 rounded-lg shadow-sm cursor-pointer bg-background/50 hover:bg-accent hover:text-accent-foreground transition-colors"
                                     onClick={() => {
-                                        if(!import.meta.env.VITE_FACEBOOK_APP_ID) {
-                                            toast.error("Vui lòng cấu hình VITE_FACEBOOK_APP_ID trong .env");
+                                        if (
+                                            !import.meta.env
+                                                .VITE_FACEBOOK_APP_ID
+                                        ) {
+                                            toast.error(
+                                                'Vui lòng cấu hình VITE_FACEBOOK_APP_ID trong .env'
+                                            );
                                             return;
                                         }
                                         setFacebookLoading(true);
