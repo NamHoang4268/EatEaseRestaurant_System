@@ -17,6 +17,10 @@ const SummaryApi = {
         url: '/api/user/google-login',
         method: 'post'
     },
+    facebook_login: {
+        url: '/api/user/facebook-login',
+        method: 'post'
+    },
     user_points: {
         url: '/api/user/user-points',
         method: 'get'

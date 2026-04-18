@@ -127,7 +127,7 @@ export async function loginController(req, res) {
 
         if (!user) {
             return res.status(400).json({
-                message: "Tài khoản không tồn tại",
+                message: "Sai email hoặc mật khẩu.",
                 error: true,
                 success: false
             });
@@ -154,7 +154,7 @@ export async function loginController(req, res) {
 
         if (!checkPassword) {
             return res.status(400).json({
-                message: "Mật khẩu không chính xác",
+                message: "Sai email hoặc mật khẩu.",
                 error: true,
                 success: false
             });
@@ -776,6 +776,129 @@ export async function googleLoginController(req, res) {
     } catch (error) {
         return res.status(500).json({
             message: error.message || "Lỗi xác thực Google",
+            error: true,
+            success: false
+        });
+    }
+}
+
+// Facebook OAuth Login/Register Controller
+export async function facebookLoginController(req, res) {
+    try {
+        const { accessToken } = req.body;
+
+        if (!accessToken) {
+            return res.status(400).json({
+                message: "Thiếu Facebook Access Token",
+                error: true,
+                success: false
+            });
+        }
+
+        // Gọi Facebook Graph API để lấy thông tin user
+        const userInfoResponse = await fetch(
+            `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
+        );
+
+        if (!userInfoResponse.ok) {
+            return res.status(401).json({
+                message: "Access Token Facebook không hợp lệ hoặc đã hết hạn",
+                error: true,
+                success: false
+            });
+        }
+
+        const facebookData = await userInfoResponse.json();
+        const facebookId = facebookData.id;
+        const email = facebookData.email;
+        const name = facebookData.name;
+        const picture = facebookData.picture?.data?.url;
+
+        // Tìm user theo facebookId trước
+        let user = await UserModel.findOne({ facebookId });
+
+        if (!user) {
+            if (email) {
+                // Nếu Facebook có trả về email, tìm xem có bị trùng email không
+                user = await UserModel.findOne({ email });
+            }
+
+            if (user) {
+                // Đã có tài khoản chung email — liên kết facebookId
+                if (user.status !== "Active") {
+                    return res.status(403).json({
+                        message: "Tài khoản đã bị khóa. Vui lòng liên hệ Admin",
+                        error: true,
+                        success: false
+                    });
+                }
+                user.facebookId = facebookId;
+                if (!user.avatar) user.avatar = picture || "";
+                await user.save();
+            } else {
+                // Không tìm thấy user — tạo user mới
+                user = new UserModel({
+                    name: name || "Facebook User",
+                    email: email || `${facebookId}@facebook.com`, // dự phòng email ảo nếu FB ko cho
+                    facebookId,
+                    avatar: picture || "",
+                    verify_email: true,
+                    role: "CUSTOMER",
+                    status: "Active"
+                });
+                await user.save();
+
+                // Gửi email chào mừng nếu có email gốc
+                if (email && email.includes('@')) {
+                    sendEmail({
+                        sendTo: email,
+                        subject: "Chào mừng bạn đến với EatEase Restaurant! 🎉",
+                        html: welcomeEmailTemplate({
+                            name,
+                            loginUrl: process.env.FRONTEND_URL || "/"
+                        })
+                    }).catch((err) => console.error("[sendEmail] Welcome email error:", err));
+                }
+            }
+        }
+
+        if (user.status !== "Active") {
+            return res.status(403).json({
+                message: "Tài khoản đã bị khóa. Vui lòng liên hệ Admin",
+                error: true,
+                success: false
+            });
+        }
+
+        const accessTokenJWT = await generatedAccessToken(user._id);
+        const refreshToken = await generatedRefreshToken(user._id);
+
+        await UserModel.findByIdAndUpdate(user._id, {
+            last_login_date: new Date()
+        });
+
+        const cookiesOption = {
+            httpOnly: true,
+            secure: true,
+            sameSite: "None"
+        };
+
+        res.cookie('accessToken', accessTokenJWT, cookiesOption);
+        res.cookie('refreshToken', refreshToken, cookiesOption);
+
+        return res.json({
+            message: "Đăng nhập Facebook thành công",
+            error: false,
+            success: true,
+            data: {
+                accessToken: accessTokenJWT,
+                refreshToken
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || "Lỗi xác thực Facebook",
             error: true,
             success: false
         });
