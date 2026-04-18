@@ -232,15 +232,19 @@ const ChefDashboard = () => {
         )
         : pendingTableGroups;
 
+    const hasAutoExpanded = useRef(false);
+
     // Auto-expand top 3 priority tables on first load
     useEffect(() => {
-        if (filteredPendingGroups.length > 0 && expandedTables.size === 0) {
+        if (filteredPendingGroups.length > 0 && !hasAutoExpanded.current) {
             const topTables = new Set(
                 filteredPendingGroups.slice(0, 3).map(g => g.tableName)
             );
             setExpandedTables(topTables);
+            hasAutoExpanded.current = true;
         }
-    }, [filteredPendingGroups, expandedTables.size]);
+    }, [filteredPendingGroups]);
+
 
     const toggleTableExpand = (tableName) => {
         setExpandedTables(prev => {
@@ -279,15 +283,6 @@ const ChefDashboard = () => {
     const totalCooking = itemsByStatus.cooking.length;
     const totalReady = itemsByStatus.ready.length;
 
-    // Calculate average wait time for cooking items
-    const avgCookingTime = itemsByStatus.cooking.length > 0
-        ? Math.floor(
-            itemsByStatus.cooking.reduce((sum, item) => {
-                const mins = item.sentAt ? Math.floor((Date.now() - new Date(item.sentAt)) / 60000) : 0;
-                return sum + mins;
-            }, 0) / itemsByStatus.cooking.length
-        )
-        : 0;
 
     return (
         <div className={`h-full bg-background text-foreground transition-all duration-300 ${
@@ -342,18 +337,6 @@ const ChefDashboard = () => {
                             </div>
                             <p className="text-xs text-muted-foreground">Sẵn sàng</p>
                         </div>
-                        {avgCookingTime > 0 && (
-                            <>
-                                <div className="h-8 w-px bg-border" />
-                                <div className="text-center">
-                                    <div className="flex items-center justify-center gap-1.5 mb-1">
-                                        <FiClock className="text-foreground" />
-                                        <p className="text-2xl font-bold text-foreground">{avgCookingTime}m</p>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">Trung bình</p>
-                                </div>
-                            </>
-                        )}
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -658,10 +641,10 @@ function KitchenItemCard({ item, status, onUpdateStatus, isUpdating, tablesMap, 
                     )}
                 </div>
                 {waitMinutes !== null && (
-                    <span className={`flex items-center gap-1 text-xs font-medium ${
+                    <span className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
                         waitMinutes > 15 
-                            ? 'text-red-500 dark:text-red-400' 
-                            : 'text-muted-foreground'
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 animate-pulse' 
+                            : 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
                     }`}>
                         <FiClock size={11} />
                         {waitMinutes}p
@@ -677,9 +660,9 @@ function KitchenItemCard({ item, status, onUpdateStatus, isUpdating, tablesMap, 
                             {item.product?.name || 'Món ăn'}
                         </h3>
                         <div className="flex items-center gap-3 text-sm">
-                            <span className="text-muted-foreground">
-                                <MdOutlineRestaurantMenu className="inline mr-1" size={14} />
-                                Main Course
+                            <span className="text-muted-foreground flex items-center">
+                                <MdOutlineRestaurantMenu className="inline mr-1 shrink-0" size={14} />
+                                <span className="line-clamp-1">{item.product?.category?.[0]?.name || 'Món ăn'}</span>
                             </span>
                             <span className="font-semibold" style={{ color: '#C96048' }}>
                                 x{item.quantity}
