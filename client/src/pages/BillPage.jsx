@@ -136,6 +136,8 @@ const InvoicesTab = () => {
     }, [searchTerm]);
 
     useEffect(() => {
+        // Chờ user hydrate (user._id rỗng = chưa load xong)
+        if (!user?._id) return;
         const load = async () => {
             if (!localStorage.getItem('accesstoken') || !canAccessBills) {
                 navigate('/dashboard/profile');
@@ -144,12 +146,13 @@ const InvoicesTab = () => {
             try {
                 await dispatch(fetchAllOrders(filterParams)).unwrap();
             } catch (err) {
-                if (err?.response?.status !== 401)
+                const status = err?.status ?? err?.response?.status;
+                if (status !== 401)
                     toast.error('Có lỗi xảy ra khi tải đơn hàng');
             }
         };
         load();
-    }, [dispatch, canAccessBills, navigate, filterParams]);
+    }, [dispatch, canAccessBills, navigate, filterParams, user?._id]);
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
@@ -228,6 +231,18 @@ const InvoicesTab = () => {
                     ];
                 }
 
+                // Ư u tiên: (1) tên đăng ký từ Customer loyalty
+                //            (2) số điện thoại (nếu chỉ check-in bằng số đt)
+                //            (3) fallback rõ ràng theo bàn
+                const custName = ob.customerId?.name?.trim();
+                const custPhone = ob.customerId?.phone?.trim();
+                const customerName =
+                    custName ||
+                    (custPhone ? `Khách ${custPhone}` : null) ||
+                    (tableNum !== 'Mang đi/Khác'
+                        ? `Bàn ${tableNum} – Khách vãng lai`
+                        : 'Khách vãng lai');
+
                 return {
                     virtualId: ob._id,
                     orderId: ob._id.slice(-8).toUpperCase(),
@@ -236,12 +251,8 @@ const InvoicesTab = () => {
                     tableNumber: tableNum,
                     payment_status: ob.payment_status || 'Chờ xử lý',
                     createdAt: ob.createdAt,
-                    customerName:
-                        ob.userId?.name ||
-                        ob.customerId?.name ||
-                        'Khách vãng lai',
-                    customerPhone:
-                        ob.userId?.mobile || ob.customerId?.phone || '',
+                    customerName,
+                    customerPhone: custPhone || '',
                     totalAmt: ob.totalAmt || 0,
                     items: items,
                 };
@@ -924,6 +935,8 @@ const ChartsTab = () => {
     });
 
     useEffect(() => {
+        // Chờ user hydrate (user._id rỗng = chưa load xong)
+        if (!user?._id) return;
         const allowedRoles = ['ADMIN', 'WAITER', 'CASHIER'];
         if (
             !localStorage.getItem('accesstoken') ||
@@ -932,8 +945,17 @@ const ChartsTab = () => {
             navigate('/dashboard/profile');
             return;
         }
-        dispatch(fetchAllOrders(filters));
-    }, [dispatch, navigate, user, filters]);
+        const loadOrders = async () => {
+            try {
+                await dispatch(fetchAllOrders(filters)).unwrap();
+            } catch (err) {
+                const status = err?.status ?? err?.response?.status;
+                if (status !== 401)
+                    toast.error('Có lỗi xảy ra khi tải dữ liệu biểu đồ');
+            }
+        };
+        loadOrders();
+    }, [dispatch, navigate, user?._id, user?.role, filters]);
 
     useEffect(() => {
         const today = new Date();
@@ -981,13 +1003,25 @@ const ChartsTab = () => {
 
     const avgOrder = orderCount > 0 ? totalRevenue / orderCount : 0;
 
-    // Top 5 products
+    // Top 5 products – iterate over o.products[] (normalized from tableOrder.items[] in orderSlice)
     const topProducts = useMemo(() => {
         const productSales = paidOrders.reduce((acc, o) => {
-            const name = o.product_details?.name || 'Không xác định';
-            if (!acc[name]) acc[name] = { name, total: 0, count: 0 };
-            acc[name].total += o.totalAmt || 0;
-            acc[name].count += o.quantity || 1;
+            const items = o.products || [];
+            if (items.length > 0) {
+                // TableOrder: multiple items per order
+                items.forEach((item) => {
+                    const name = item.name || 'Không xác định';
+                    if (!acc[name]) acc[name] = { name, total: 0, count: 0 };
+                    acc[name].total += (item.price || 0) * (item.quantity || 1);
+                    acc[name].count += item.quantity || 1;
+                });
+            } else {
+                // Fallback for legacy single-product orders
+                const name = o.product_details?.name || 'Không xác định';
+                if (!acc[name]) acc[name] = { name, total: 0, count: 0 };
+                acc[name].total += o.totalAmt || 0;
+                acc[name].count += o.quantity || 1;
+            }
             return acc;
         }, {});
         return Object.values(productSales)
